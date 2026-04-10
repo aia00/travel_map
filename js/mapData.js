@@ -175,9 +175,11 @@ function enrichFeatures(features, iso, adm0ByIso, fallbackToCountry = false) {
       props.shapeISO ??
       props.id ??
       `${iso}-${normalizeText(regionName)}-${index}`;
+    const geometry = normalizeGeometryForD3(feature.geometry);
 
     return {
       ...feature,
+      geometry,
       properties: {
         ...props,
         regionName,
@@ -188,6 +190,55 @@ function enrichFeatures(features, iso, adm0ByIso, fallbackToCountry = false) {
       },
     };
   });
+}
+
+function normalizeGeometryForD3(geometry) {
+  if (!geometry?.type || !geometry.coordinates) {
+    return geometry;
+  }
+
+  if (geometry.type === "Polygon") {
+    return {
+      ...geometry,
+      coordinates: normalizePolygonRings(geometry.coordinates),
+    };
+  }
+
+  if (geometry.type === "MultiPolygon") {
+    return {
+      ...geometry,
+      coordinates: geometry.coordinates.map((polygon) =>
+        normalizePolygonRings(polygon),
+      ),
+    };
+  }
+
+  return geometry;
+}
+
+function normalizePolygonRings(rings) {
+  return rings.map((ring, index) => {
+    const shouldBeClockwise = index === 0;
+    const isClockwise = getSignedRingArea(ring) < 0;
+
+    if (isClockwise === shouldBeClockwise) {
+      return ring;
+    }
+
+    return [...ring].reverse();
+  });
+}
+
+function getSignedRingArea(ring) {
+  let area = 0;
+
+  for (let index = 0; index < ring.length - 1; index += 1) {
+    const [x1, y1] = ring[index];
+    const [x2, y2] = ring[index + 1];
+    area += x1 * y2 - x2 * y1;
+  }
+
+  return area / 2;
 }
 
 function toGeoBoundariesGeometryUrl(url) {
