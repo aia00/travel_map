@@ -2,6 +2,21 @@ import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm";
 
 import { CONTINENTS } from "./config.js";
 
+const CONTINENT_VIEWBOX = {
+  width: 960,
+  height: 560,
+  padding: 24,
+};
+
+const COUNTRY_VIEWBOX = {
+  width: 960,
+  height: 620,
+  padding: 26,
+};
+
+const COUNTRY_ZOOM_SCALE_EXTENT = [1, 8];
+const COUNTRY_HIT_STROKE_WIDTH = 8;
+
 export function hideTooltip(dom) {
   dom.tooltip.hidden = true;
 }
@@ -88,22 +103,23 @@ export function renderContinentMap({
     .geoNaturalEarth1()
     .fitExtent(
       [
-        [24, 24],
-        [936, 536],
+        [CONTINENT_VIEWBOX.padding, CONTINENT_VIEWBOX.padding],
+        [
+          CONTINENT_VIEWBOX.width - CONTINENT_VIEWBOX.padding,
+          CONTINENT_VIEWBOX.height - CONTINENT_VIEWBOX.padding,
+        ],
       ],
-      {
-        type: "FeatureCollection",
-        features: continentFeatures,
-      },
+      toFeatureCollection(continentFeatures),
     );
   const path = d3.geoPath(projection);
+  svg.attr("preserveAspectRatio", "xMidYMid meet");
 
   svg
     .append("rect")
     .attr("x", 0)
     .attr("y", 0)
-    .attr("width", 960)
-    .attr("height", 560)
+    .attr("width", CONTINENT_VIEWBOX.width)
+    .attr("height", CONTINENT_VIEWBOX.height)
     .attr("fill", "transparent");
 
   svg
@@ -158,8 +174,8 @@ export function renderContinentMapError(dom, message) {
     .append("foreignObject")
     .attr("x", 0)
     .attr("y", 0)
-    .attr("width", 960)
-    .attr("height", 560)
+    .attr("width", CONTINENT_VIEWBOX.width)
+    .attr("height", CONTINENT_VIEWBOX.height)
     .html(
       `<div xmlns="http://www.w3.org/1999/xhtml" class="map-empty-state">${message}</div>`,
     );
@@ -196,40 +212,34 @@ export function renderCountryMap({
     return;
   }
 
-  const projection = d3
-    .geoMercator()
-    .fitExtent(
-      [
-        [26, 26],
-        [934, 594],
-      ],
-      {
-        type: "FeatureCollection",
-        features,
-      },
-    );
+  const featureCollection = toFeatureCollection(features);
+  const projection = createCountryProjection(featureCollection);
   const path = d3.geoPath(projection);
+  const svgNode = svg.node();
+
+  svg.attr("preserveAspectRatio", "xMidYMid meet").classed("is-dragging", false);
 
   svg
     .append("rect")
     .attr("x", 0)
     .attr("y", 0)
-    .attr("width", 960)
-    .attr("height", 620)
+    .attr("width", COUNTRY_VIEWBOX.width)
+    .attr("height", COUNTRY_VIEWBOX.height)
     .attr("fill", "transparent");
 
-  svg
+  const viewport = svg.append("g").attr("class", "country-map-viewport");
+
+  viewport
     .append("g")
+    .attr("class", "country-region-hits")
     .selectAll("path")
     .data(features)
     .join("path")
-    .attr("class", (feature) =>
-      `admin-region ${feature.properties.visitKey === selectedRegionKey ? "is-selected" : ""}`,
-    )
+    .attr("class", "admin-region-hit")
     .attr("d", path)
-    .attr("fill", (feature) => getRegionFill(feature.properties.visitKey))
-    .attr("stroke", "rgba(20, 37, 52, 0.38)")
-    .attr("stroke-width", 0.85)
+    .attr("fill", "transparent")
+    .attr("stroke", "transparent")
+    .attr("stroke-width", COUNTRY_HIT_STROKE_WIDTH)
     .on("click", (_, feature) => {
       onSelectRegion(feature);
     })
@@ -244,6 +254,39 @@ export function renderCountryMap({
     .on("mouseleave", () => {
       hideTooltip(dom);
     });
+
+  viewport
+    .append("g")
+    .attr("class", "country-region-fills")
+    .selectAll("path")
+    .data(features)
+    .join("path")
+    .attr("class", (feature) =>
+      `admin-region ${feature.properties.visitKey === selectedRegionKey ? "is-selected" : ""}`,
+    )
+    .attr("d", path)
+    .attr("fill", (feature) => getRegionFill(feature.properties.visitKey))
+    .attr("stroke", "rgba(20, 37, 52, 0.38)")
+    .attr("stroke-width", 0.85);
+
+  const zoom = d3
+    .zoom()
+    .scaleExtent(COUNTRY_ZOOM_SCALE_EXTENT)
+    .translateExtent(getZoomTranslateExtent())
+    .on("start", () => {
+      svg.classed("is-dragging", true);
+    })
+    .on("zoom", (event) => {
+      viewport.attr("transform", event.transform);
+    })
+    .on("end", () => {
+      svg.classed("is-dragging", false);
+    });
+
+  svg.call(zoom);
+  if (svgNode) {
+    zoom.transform(svg, d3.zoomIdentity);
+  }
 }
 
 export function renderCountryMapError(dom, message) {
@@ -255,9 +298,80 @@ export function renderCountryMapError(dom, message) {
     .append("foreignObject")
     .attr("x", 0)
     .attr("y", 0)
-    .attr("width", 960)
-    .attr("height", 620)
+    .attr("width", COUNTRY_VIEWBOX.width)
+    .attr("height", COUNTRY_VIEWBOX.height)
     .html(
       `<div xmlns="http://www.w3.org/1999/xhtml" class="map-empty-state">${message}</div>`,
     );
+}
+
+function toFeatureCollection(features) {
+  return {
+    type: "FeatureCollection",
+    features,
+  };
+}
+
+function createCountryProjection(featureCollection) {
+  const [centerLon, centerLat] = getProjectionCenter(featureCollection);
+  const fitExtent = [
+    [COUNTRY_VIEWBOX.padding, COUNTRY_VIEWBOX.padding],
+    [
+      COUNTRY_VIEWBOX.width - COUNTRY_VIEWBOX.padding,
+      COUNTRY_VIEWBOX.height - COUNTRY_VIEWBOX.padding,
+    ],
+  ];
+
+  const projectionFactories = [
+    () => d3.geoAzimuthalEqualArea().rotate([-centerLon, -centerLat]),
+    () => d3.geoMercator().center([centerLon, centerLat]),
+    () => d3.geoNaturalEarth1(),
+  ];
+
+  for (const createProjection of projectionFactories) {
+    try {
+      const projection = createProjection().fitExtent(fitExtent, featureCollection);
+      if (hasUsableProjectionBounds(projection, featureCollection)) {
+        return projection;
+      }
+    } catch (error) {
+      console.warn("Projection fit failed", error);
+    }
+  }
+
+  return d3.geoMercator().fitExtent(fitExtent, featureCollection);
+}
+
+function getProjectionCenter(featureCollection) {
+  const centroid = d3.geoCentroid(featureCollection);
+  if (centroid.every(Number.isFinite)) {
+    return centroid;
+  }
+
+  const [[minLon, minLat], [maxLon, maxLat]] = d3.geoBounds(featureCollection);
+  return [
+    Number.isFinite(minLon) && Number.isFinite(maxLon) ? (minLon + maxLon) / 2 : 0,
+    Number.isFinite(minLat) && Number.isFinite(maxLat) ? (minLat + maxLat) / 2 : 0,
+  ];
+}
+
+function hasUsableProjectionBounds(projection, featureCollection) {
+  const bounds = d3.geoPath(projection).bounds(featureCollection);
+  if (!Array.isArray(bounds) || bounds.length !== 2) {
+    return false;
+  }
+
+  const [[x0, y0], [x1, y1]] = bounds;
+  return (
+    [x0, y0, x1, y1].every(Number.isFinite) &&
+    x1 - x0 > 24 &&
+    y1 - y0 > 24
+  );
+}
+
+function getZoomTranslateExtent() {
+  return [
+    [-COUNTRY_VIEWBOX.width * 0.3, -COUNTRY_VIEWBOX.height * 0.3],
+    [COUNTRY_VIEWBOX.width * 1.3, COUNTRY_VIEWBOX.height * 1.3],
+  ];
 }

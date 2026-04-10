@@ -172,12 +172,22 @@ button {
   max-width: 12ch;
 }
 
+html[lang="en"] .hero h1 {
+  font-size: clamp(1.8rem, 3.2vw, 3rem);
+  line-height: 1.14;
+  max-width: 16ch;
+}
+
 .hero-text {
   margin: 16px 0 0;
   max-width: 62ch;
   font-size: 1rem;
   line-height: 1.8;
   color: var(--muted);
+}
+
+html[lang="en"] .hero-text {
+  max-width: 54ch;
 }
 
 .hero-metrics {
@@ -593,14 +603,25 @@ svg {
 }
 
 .continent-country,
-.admin-region {
+.admin-region,
+.admin-region-hit {
   cursor: pointer;
+  vector-effect: non-scaling-stroke;
   transition: fill var(--ease), opacity var(--ease), stroke var(--ease), transform var(--ease);
 }
 
 .continent-country:hover,
 .admin-region:hover {
   opacity: 0.92;
+}
+
+#countryMap {
+  touch-action: none;
+  cursor: grab;
+}
+
+#countryMap.is-dragging {
+  cursor: grabbing;
 }
 
 .continent-country.is-selected {
@@ -611,6 +632,18 @@ svg {
 .admin-region.is-selected {
   stroke: rgba(255, 255, 255, 0.96);
   stroke-width: 1.8px;
+}
+
+.country-region-fills {
+  pointer-events: none;
+}
+
+.admin-region-hit {
+  fill: transparent;
+  stroke: transparent;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: all;
 }
 
 .map-empty-state {

@@ -3,10 +3,9 @@ const TRANSLATIONS = {
     pageTitle: "Visited Administrative Map",
     eyebrow: "Visited Atlas",
     languageSwitchAria: "Language switch",
-    heroTitle:
-      "Track where you have been, continent by continent, down to each country’s first-level administrative regions.",
+    heroTitle: "Track your footprints by continent, country, and region.",
     heroText:
-      "Choose a continent, then a country. The map loads states, provinces, prefectures, or equivalent first-level divisions. Add places by search or by clicking the map, then mark them as resident, transit, or travel.",
+      "Choose a continent, open a country, then mark states, provinces, prefectures, or equivalent first-level divisions by search or directly on the map.",
     metrics: {
       total: "Total Marks",
     },
