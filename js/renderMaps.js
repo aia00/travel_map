@@ -187,6 +187,7 @@ export function renderCountryMap({
   getRegionFill,
   t,
   onSelectRegion,
+  onClearSelection,
   getVisitLabel,
 }) {
   const svg = d3.select(dom.countryMap);
@@ -220,7 +221,13 @@ export function renderCountryMap({
     .attr("y", 0)
     .attr("width", COUNTRY_VIEWBOX.width)
     .attr("height", COUNTRY_VIEWBOX.height)
-    .attr("fill", "transparent");
+    .attr("fill", "transparent")
+    .on("click", () => {
+      onClearSelection();
+    })
+    .on("mouseleave", () => {
+      hideTooltip(dom);
+    });
 
   svg
     .append("g")

@@ -410,6 +410,9 @@ export function bootstrapApp() {
       onSelectRegion: (feature) => {
         selectFeature(feature);
       },
+      onClearSelection: () => {
+        clearSelectedFeature();
+      },
       getVisitLabel: (visitKey) => {
         const visit = state.visited[visitKey];
         return visit ? getVisitLabel(visit.type) : translate("labels.unmarked");
@@ -550,6 +553,21 @@ export function bootstrapApp() {
     dom.regionInput.value = feature.properties.regionName;
     persistUiState();
     state.activeMatches = renderSearchMatches(feature.properties.regionName);
+    renderSelectionPanel();
+    renderCountryView();
+    renderSavedRegions();
+  }
+
+  function clearSelectedFeature() {
+    if (!state.selectedRegionKey && !dom.regionInput.value) {
+      return;
+    }
+
+    state.selectedRegionKey = null;
+    dom.regionInput.value = "";
+    dom.searchResults.innerHTML = "";
+    persistUiState();
+    state.activeMatches = [];
     renderSelectionPanel();
     renderCountryView();
     renderSavedRegions();
