@@ -57,8 +57,17 @@ export function renderCountrySelect({
   selectedCountryIso,
   continentTitle,
   continentMeta,
+  countryPlaceholder,
 }) {
   dom.countrySelect.innerHTML = "";
+
+  if (!selectedCountryIso) {
+    const placeholderOption = document.createElement("option");
+    placeholderOption.value = "";
+    placeholderOption.textContent = countryPlaceholder;
+    placeholderOption.selected = true;
+    dom.countrySelect.appendChild(placeholderOption);
+  }
 
   countries.forEach((country) => {
     const option = document.createElement("option");
@@ -82,6 +91,7 @@ export function renderContinentMap({
   t,
   getVisitTypeLabel,
   onSelectCountry,
+  onClearCountrySelection,
 }) {
   const svg = d3.select(dom.continentMap);
   svg.selectAll("*").remove();
@@ -117,7 +127,13 @@ export function renderContinentMap({
     .attr("y", 0)
     .attr("width", CONTINENT_VIEWBOX.width)
     .attr("height", CONTINENT_VIEWBOX.height)
-    .attr("fill", "transparent");
+    .attr("fill", "transparent")
+    .on("click", () => {
+      onClearCountrySelection();
+    })
+    .on("mouseleave", () => {
+      hideTooltip(dom);
+    });
 
   svg
     .append("g")

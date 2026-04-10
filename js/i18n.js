@@ -23,6 +23,7 @@ const TRANSLATIONS = {
     savedTitle: "Marked regions in this country",
     fields: {
       country: "Country",
+      countryPlaceholder: "Select a country",
       regionSearch: "Region search",
       visitType: "Visit type",
     },
@@ -77,7 +78,7 @@ const TRANSLATIONS = {
       continentTitleSuffix: "Map",
       countryTitleSuffix: "Administrative Level 1",
       continentMeta:
-        "{count} countries or territories in this continent. Click the map or dropdown to switch countries.",
+        "Visited {visitedCount}/{count} countries or territories in this continent. Click the map or dropdown to switch countries.",
       continentMarkedRegions: "Marked regions: {count}",
       continentNoMarks: "No marks yet.",
       continentBreakdown:
@@ -85,7 +86,8 @@ const TRANSLATIONS = {
       countryMetaFallback:
         "ADM1 is unavailable for this country, so the view falls back to the country boundary.",
       countryMetaLoaded:
-        "Showing {count} first-level administrative regions. Click a region to mark it.",
+        "Visited {visitedCount}/{count} first-level administrative regions. Click a region to mark it.",
+      countryTitleEmpty: "Administrative map",
       adminStatus: "Status: {status}",
       emptyContinent:
         "No country boundaries are available for this continent right now.",
@@ -154,6 +156,7 @@ const TRANSLATIONS = {
     savedTitle: "当前国家已标记地区",
     fields: {
       country: "国家",
+      countryPlaceholder: "请选择国家",
       regionSearch: "地区搜索",
       visitType: "足迹类型",
     },
@@ -207,14 +210,15 @@ const TRANSLATIONS = {
       continentTitleSuffix: "地图",
       countryTitleSuffix: "一级行政区",
       continentMeta:
-        "本大洲共 {count} 个国家 / 地区数据源。点击地图或下拉框切换国家。",
+        "本大洲已访问 {visitedCount}/{count} 个国家 / 地区。点击地图或下拉框切换国家。",
       continentMarkedRegions: "已标记地区：{count}",
       continentNoMarks: "还没有标记。",
       continentBreakdown:
         "{residentLabel} {resident} / {travelLabel} {travel} / {transitLabel} {transit}",
       countryMetaFallback: "该国家未能加载 ADM1，当前退回到国家边界视图。",
       countryMetaLoaded:
-        "当前显示 {count} 个一级行政区边界。点击区域可直接标记。",
+        "已访问 {visitedCount}/{count} 个一级行政区。点击区域可直接标记。",
+      countryTitleEmpty: "一级行政区地图",
       adminStatus: "状态：{status}",
       emptyContinent: "这个大洲当前没有可展示的国家边界。",
       emptyCountryPrompt: "先选择一个国家，再查看一级行政区地图。",

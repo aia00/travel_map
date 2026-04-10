@@ -79,7 +79,7 @@ export function bootstrapApp() {
     boundDom.placeForm.addEventListener("submit", handleSubmit);
 
     boundDom.countrySelect.addEventListener("change", async (event) => {
-      boundState.selectedCountryIso = event.target.value;
+      boundState.selectedCountryIso = event.target.value || null;
       boundState.selectedRegionKey = null;
       boundDom.regionInput.value = "";
       boundDom.searchResults.innerHTML = "";
@@ -352,8 +352,10 @@ export function bootstrapApp() {
       selectedCountryIso: state.selectedCountryIso,
       continentTitle: formatContinentTitle(state.language, state.selectedContinent),
       continentMeta: translate("map.continentMeta", {
+        visitedCount: summarizeContinent(state.selectedContinent).visited,
         count: countries.length,
       }),
+      countryPlaceholder: translate("fields.countryPlaceholder"),
     });
   }
 
@@ -380,12 +382,16 @@ export function bootstrapApp() {
         await loadSelectedCountry();
         renderCountryView();
       },
+      onClearCountrySelection: () => {
+        clearSelectedCountry();
+      },
     });
   }
 
   function renderCountryView() {
     const countryData = state.adminDataByIso.get(state.selectedCountryIso);
     const countryMeta = state.adm0ByIso.get(state.selectedCountryIso);
+    const countrySummary = summarizeSelectedCountry();
 
     if (countryMeta) {
       dom.countryTitle.textContent = formatCountryTitle(
@@ -395,8 +401,12 @@ export function bootstrapApp() {
       dom.countryMeta.textContent = countryData?.fallback
         ? translate("map.countryMetaFallback")
         : translate("map.countryMetaLoaded", {
+            visitedCount: countrySummary.visited,
             count: countryData?.features?.length ?? 0,
           });
+    } else {
+      dom.countryTitle.textContent = translate("map.countryTitleEmpty");
+      dom.countryMeta.textContent = translate("map.emptyCountryPrompt");
     }
 
     renderCountryMap({
@@ -573,6 +583,24 @@ export function bootstrapApp() {
     renderSavedRegions();
   }
 
+  function clearSelectedCountry() {
+    if (!state.selectedCountryIso && !state.selectedRegionKey && !dom.regionInput.value) {
+      return;
+    }
+
+    state.selectedCountryIso = null;
+    state.selectedRegionKey = null;
+    dom.regionInput.value = "";
+    dom.searchResults.innerHTML = "";
+    persistUiState();
+    state.activeMatches = [];
+    renderCountrySelectView();
+    renderContinentView();
+    renderSelectionPanel();
+    renderSavedRegions();
+    renderCountryView();
+  }
+
   function getSelectedFeature() {
     if (!state.selectedRegionKey || !state.selectedCountryIso) {
       return null;
@@ -597,6 +625,38 @@ export function bootstrapApp() {
       resident: entries.filter((entry) => entry.type === "resident").length,
       travel: entries.filter((entry) => entry.type === "travel").length,
       transit: entries.filter((entry) => entry.type === "transit").length,
+    };
+  }
+
+  function summarizeContinent(continentId) {
+    const countryIsos = new Set(
+      getCountriesForContinent(state.adm0Meta, continentId).map(
+        (country) => country.boundaryISO,
+      ),
+    );
+    const visitedCountries = new Set(
+      Object.values(state.visited)
+        .map((entry) => entry.iso)
+        .filter((iso) => countryIsos.has(iso)),
+    );
+
+    return {
+      visited: visitedCountries.size,
+      total: countryIsos.size,
+    };
+  }
+
+  function summarizeSelectedCountry() {
+    if (!state.selectedCountryIso) {
+      return {
+        visited: 0,
+      };
+    }
+
+    return {
+      visited: Object.values(state.visited).filter(
+        (entry) => entry.iso === state.selectedCountryIso,
+      ).length,
     };
   }
 
