@@ -210,7 +210,8 @@ export function renderCountryMap({
   }
 
   const projection = d3
-    .geoMercator()
+    .geoIdentity()
+    .reflectY(true)
     .fitExtent(
       [
         [COUNTRY_VIEWBOX.padding, COUNTRY_VIEWBOX.padding],
