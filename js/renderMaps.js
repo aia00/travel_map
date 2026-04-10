@@ -244,8 +244,8 @@ export function renderCountryMap({
     )
     .attr("d", path)
     .attr("fill", (feature) => getRegionFill(feature.properties.visitKey))
-    .attr("stroke", "rgba(20, 37, 52, 0.38)")
-    .attr("stroke-width", 0.85);
+    .attr("stroke", "rgba(20, 37, 52, 0.48)")
+    .attr("stroke-width", 1.05);
 
   svg
     .append("g")

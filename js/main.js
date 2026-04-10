@@ -603,7 +603,7 @@ export function bootstrapApp() {
     }
 
     const visit = state.visited[visitKey];
-    return visit ? VISIT_TYPES[visit.type].color : "#ebe2d1";
+    return visit ? VISIT_TYPES[visit.type].color : "#d9cfbd";
   }
 
   function getVisitLabel(type) {
