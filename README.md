@@ -1,79 +1,60 @@
-# 足迹行政区地图
+# Visited Administrative Map / 足迹行政区地图
 
-这是一个纯静态网页，用来按大洲整理旅行足迹，并细化到各个国家的一级行政区。
+A static map app for tracking where you have been by continent, country, and first-level administrative region.
 
-## 本地启动
+这是一个静态网页，用来按大洲、国家和一级行政区记录你去过的地方。
 
-在当前目录执行：
+## Features / 功能
+
+- Continent-first browsing, then country-level drill-down into ADM1 regions such as states and provinces.
+- Mark places as `Resident`, `Travel`, or `Transit`.
+- Add regions by search or by clicking the map directly.
+- Chinese / English UI toggle in the top-right corner of the page.
+- Data is saved in the browser with `localStorage`.
+- The app also remembers your last selected continent, country, region, search text, and visit type.
+
+## Local Development / 本地运行
 
 ```bash
+cd /home/ykwang/projects/maps
 python -m http.server 8000
 ```
 
-然后打开：
+Open:
 
 ```text
 http://localhost:8000
 ```
 
-## GitHub Pages 部署
+## GitHub Pages
 
-这个目录已经包含 GitHub Pages workflow：
+This repository includes:
 
 - `.github/workflows/deploy-pages.yml`
 - `.nojekyll`
 
-如果你要把它部署到 GitHub，最短流程是：
+For a repository using GitHub Actions Pages deployment:
 
-```bash
-cd /home/ykwang/projects/maps
-git init
-git add .
-git commit -m "Initial GitHub Pages site"
-git branch -M main
-gh repo create maps --public --source=. --remote=origin --push
-```
+1. Push the repository to GitHub.
+2. Open `Settings > Pages`.
+3. Set `Build and deployment` to `GitHub Actions`.
+4. Push to `main` to trigger deployment.
 
-然后到 GitHub 仓库页面：
+If the first workflow run fails with a Pages `Not Found` error, it usually means Pages has not been enabled for the repository yet. Set `Settings > Pages > Build and deployment` to `GitHub Actions`, then rerun the workflow.
 
-1. 打开 `Settings`
-2. 进入 `Pages`
-3. 在 `Build and deployment` 里选择 `GitHub Actions`
-
-之后每次你往 `main` 分支 push，GitHub Pages 都会自动重新部署。
-
-默认站点地址通常会是：
+Typical site URL:
 
 ```text
-https://<你的GitHub用户名>.github.io/maps/
+https://<your-github-username>.github.io/maps/
 ```
 
-如果你已经有远程仓库，也可以手动连上去：
+## Notes / 说明
 
-```bash
-cd /home/ykwang/projects/maps
-git init
-git add .
-git commit -m "Initial GitHub Pages site"
-git branch -M main
-git remote add origin <你的仓库地址>
-git push -u origin main
-```
+- UI text can switch between English and Chinese, but geographic names come from the source datasets and may remain in their original naming.
+- `localStorage` is domain-specific, so marks saved on `localhost` are separate from marks saved on your GitHub Pages domain.
+- The page needs network access to fetch map data on first load and when switching countries.
 
-## 使用说明
+## Data Sources / 数据来源
 
-- 先切换大洲，再选择国家。
-- 页面会加载这个国家的一级行政区边界。
-- 可以在搜索框输入州、省、郡等名称，再选择 `常住 / 旅行 / 途径` 上色。
-- 也可以直接点击地图区域，再用右侧快捷按钮改颜色。
-- 标记结果保存在浏览器 `localStorage` 里。
-
-## 注意
-
-- `localStorage` 是按域名分开的，所以你在 `localhost` 上标的内容，不会自动出现在 GitHub Pages 域名上。
-- 页面首次加载和切换国家时需要联网获取地图数据。
-
-## 数据来源
-
-- 全球国家概览底图：`visionscarto/world-atlas`
-- 国家与一级行政区边界：`geoBoundaries`
+- World country overview: `visionscarto/world-atlas`
+- Administrative boundaries: `geoBoundaries`
