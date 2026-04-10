@@ -209,19 +209,7 @@ export function renderCountryMap({
     return;
   }
 
-  const projection = d3
-    .geoIdentity()
-    .reflectY(true)
-    .fitExtent(
-      [
-        [COUNTRY_VIEWBOX.padding, COUNTRY_VIEWBOX.padding],
-        [
-          COUNTRY_VIEWBOX.width - COUNTRY_VIEWBOX.padding,
-          COUNTRY_VIEWBOX.height - COUNTRY_VIEWBOX.padding,
-        ],
-      ],
-      toFeatureCollection(features),
-    );
+  const projection = createCountryProjection(selectedCountryIso, features);
   const path = d3.geoPath(projection);
 
   svg.attr("preserveAspectRatio", "xMidYMid meet");
@@ -295,4 +283,21 @@ function toFeatureCollection(features) {
     type: "FeatureCollection",
     features,
   };
+}
+
+function createCountryProjection(countryIso, features) {
+  const fitExtent = [
+    [COUNTRY_VIEWBOX.padding, COUNTRY_VIEWBOX.padding],
+    [
+      COUNTRY_VIEWBOX.width - COUNTRY_VIEWBOX.padding,
+      COUNTRY_VIEWBOX.height - COUNTRY_VIEWBOX.padding,
+    ],
+  ];
+  const featureCollection = toFeatureCollection(features);
+
+  if (countryIso === "USA") {
+    return d3.geoAlbersUsa().fitExtent(fitExtent, featureCollection);
+  }
+
+  return d3.geoIdentity().reflectY(true).fitExtent(fitExtent, featureCollection);
 }
