@@ -615,15 +615,6 @@ svg {
   opacity: 0.92;
 }
 
-#countryMap {
-  touch-action: none;
-  cursor: grab;
-}
-
-#countryMap.is-dragging {
-  cursor: grabbing;
-}
-
 .continent-country.is-selected {
   stroke: rgba(255, 255, 255, 0.92);
   stroke-width: 1.8px;
