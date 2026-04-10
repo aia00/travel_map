@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>足迹行政区地图</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Noto+Serif+SC:wght@600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="hero panel">
+        <p class="eyebrow">Visited Atlas</p>
+        <div class="hero-copy">
+          <div>
+            <h1>按大洲整理你的足迹，再细到每个国家的一级行政区。</h1>
+            <p class="hero-text">
+              先选大洲，再选国家。地图会加载该国的州、省、郡或同级一级行政区；你可以通过搜索或点击地图，把地区标记为常住、途径或旅行。
+            </p>
+          </div>
+          <div class="hero-metrics" id="heroMetrics">
+            <div class="metric-card">
+              <span class="metric-label">总标记数</span>
+              <strong class="metric-value" data-metric="total">0</strong>
+            </div>
+            <div class="metric-card">
+              <span class="metric-label">常住</span>
+              <strong class="metric-value" data-metric="resident">0</strong>
+            </div>
+            <div class="metric-card">
+              <span class="metric-label">旅行</span>
+              <strong class="metric-value" data-metric="travel">0</strong>
+            </div>
+            <div class="metric-card">
+              <span class="metric-label">途径</span>
+              <strong class="metric-value" data-metric="transit">0</strong>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <section class="continent-switch panel">
+        <div class="section-heading">
+          <div>
+            <p class="section-kicker">Continents</p>
+            <h2>先切换大洲，再进入国家一级行政区。</h2>
+          </div>
+          <p class="status-pill" id="statusPill" aria-live="polite">准备中</p>
+        </div>
+        <div class="continent-tabs" id="continentTabs"></div>
+      </section>
+
+      <div class="app-grid">
+        <aside class="panel controls-panel">
+          <div class="section-heading compact">
+            <div>
+              <p class="section-kicker">Mark Places</p>
+              <h2>搜索并上色</h2>
+            </div>
+          </div>
+
+          <form id="placeForm" class="control-form">
+            <label class="field">
+              <span>国家</span>
+              <select id="countrySelect" name="country" required></select>
+            </label>
+
+            <label class="field">
+              <span>地区搜索</span>
+              <input
+                id="regionInput"
+                name="region"
+                type="search"
+                list="regionSuggestions"
+                placeholder="输入州、省、府、郡等一级行政区名称"
+                autocomplete="off"
+                required
+              />
+              <datalist id="regionSuggestions"></datalist>
+            </label>
+
+            <div class="search-results" id="searchResults"></div>
+
+            <label class="field">
+              <span>足迹类型</span>
+              <select id="visitTypeSelect" name="visitType" required>
+                <option value="resident">常住</option>
+                <option value="travel" selected>旅行</option>
+                <option value="transit">途径</option>
+              </select>
+            </label>
+
+            <div class="form-actions">
+              <button class="primary-button" type="submit">添加 / 更新颜色</button>
+              <button class="ghost-button" type="button" id="clearRegionButton">清除当前标记</button>
+            </div>
+          </form>
+
+          <section class="selection-card" id="selectionCard">
+            <div class="selection-copy">
+              <p class="section-kicker">Current Selection</p>
+              <h3 id="selectionTitle">还没有选中地区</h3>
+              <p id="selectionMeta">可以点击地图，或在搜索框里输入地区名称。</p>
+            </div>
+            <div class="selection-actions" id="selectionActions"></div>
+          </section>
+
+          <section class="legend-block">
+            <div class="legend-item">
+              <span class="legend-swatch resident"></span>
+              <div>
+                <strong>常住</strong>
+                <p>长期生活、工作或稳定停留。</p>
+              </div>
+            </div>
+            <div class="legend-item">
+              <span class="legend-swatch travel"></span>
+              <div>
+                <strong>旅行</strong>
+                <p>旅行、出差、游学、短期访问。</p>
+              </div>
+            </div>
+            <div class="legend-item">
+              <span class="legend-swatch transit"></span>
+              <div>
+                <strong>途径</strong>
+                <p>路过、转机、换乘、短暂停留。</p>
+              </div>
+            </div>
+          </section>
+
+          <section class="saved-panel">
+            <div class="section-heading compact">
+              <div>
+                <p class="section-kicker">Saved</p>
+                <h2>当前国家已标记地区</h2>
+              </div>
+            </div>
+            <div id="savedList" class="saved-list"></div>
+          </section>
+        </aside>
+
+        <main class="maps-column">
+          <section class="panel map-card">
+            <div class="map-header">
+              <div>
+                <p class="section-kicker">Continent View</p>
+                <h2 id="continentTitle">大洲地图</h2>
+              </div>
+              <p id="continentMeta" class="map-meta">点击国家切换一级行政区地图。</p>
+            </div>
+            <div class="map-stage">
+              <svg id="continentMap" viewBox="0 0 960 560" role="img" aria-label="Continent map"></svg>
+            </div>
+          </section>
+
+          <section class="panel map-card">
+            <div class="map-header">
+              <div>
+                <p class="section-kicker">Administrative Level 1</p>
+                <h2 id="countryTitle">一级行政区地图</h2>
+              </div>
+              <p id="countryMeta" class="map-meta">选择国家后会加载一级行政区边界。</p>
+            </div>
+            <div class="map-stage detail-stage">
+              <svg id="countryMap" viewBox="0 0 960 620" role="img" aria-label="Administrative map"></svg>
+            </div>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <div class="tooltip" id="tooltip" hidden></div>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
