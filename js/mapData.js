@@ -130,6 +130,45 @@ export function findMatches(features, query) {
     .map((item) => item.feature);
 }
 
+export async function findPlaceMatches({
+  query,
+  countryName,
+  features,
+  language,
+}) {
+  const params = new URLSearchParams({
+    q: countryName ? `${query}, ${countryName}` : query,
+    format: "jsonv2",
+    addressdetails: "1",
+    limit: "8",
+  });
+  params.set(
+    "accept-language",
+    language === "zh" ? "zh-CN,zh,en" : "en",
+  );
+
+  const results = await fetchJson(`${SOURCES.geocodeSearch}?${params.toString()}`);
+  const matchedFeatures = [];
+
+  results.forEach((candidate) => {
+    const pointMatch = findFeatureContainingPoint(features, [
+      Number(candidate.lon),
+      Number(candidate.lat),
+    ]);
+
+    if (pointMatch) {
+      matchedFeatures.push(pointMatch);
+      return;
+    }
+
+    matchedFeatures.push(
+      ...findAdministrativeNameMatches(features, candidate.address ?? {}),
+    );
+  });
+
+  return dedupeFeatures(matchedFeatures);
+}
+
 export function normalizeText(value) {
   return String(value ?? "")
     .normalize("NFD")
@@ -158,6 +197,127 @@ function deriveContinent(item) {
   return CONTINENTS.find((continent) =>
     continent.sourceNames.includes(item.Continent),
   )?.id;
+}
+
+function dedupeFeatures(features) {
+  return [...new Map(features.map((feature) => [feature.properties.visitKey, feature])).values()];
+}
+
+function findFeatureContainingPoint(features, point) {
+  if (!Number.isFinite(point[0]) || !Number.isFinite(point[1])) {
+    return null;
+  }
+
+  return (
+    features.find((feature) => geometryContainsPoint(feature.geometry, point)) ?? null
+  );
+}
+
+function geometryContainsPoint(geometry, point) {
+  if (!geometry?.type || !geometry.coordinates) {
+    return false;
+  }
+
+  if (geometry.type === "Polygon") {
+    return polygonContainsPoint(geometry.coordinates, point);
+  }
+
+  if (geometry.type === "MultiPolygon") {
+    return geometry.coordinates.some((polygon) =>
+      polygonContainsPoint(polygon, point),
+    );
+  }
+
+  return false;
+}
+
+function polygonContainsPoint(rings, point) {
+  if (!rings?.length || !ringContainsPoint(rings[0], point)) {
+    return false;
+  }
+
+  return !rings.slice(1).some((ring) => ringContainsPoint(ring, point));
+}
+
+function ringContainsPoint(ring, point) {
+  if (!ring?.length) {
+    return false;
+  }
+
+  const [x, y] = point;
+  let inside = false;
+
+  for (let index = 0, previous = ring.length - 1; index < ring.length; previous = index, index += 1) {
+    const [xi, yi] = ring[index];
+    const [xj, yj] = ring[previous];
+
+    if (isPointOnSegment(point, [xj, yj], [xi, yi])) {
+      return true;
+    }
+
+    const intersects =
+      yi > y !== yj > y &&
+      x < ((xj - xi) * (y - yi)) / ((yj - yi) || Number.EPSILON) + xi;
+
+    if (intersects) {
+      inside = !inside;
+    }
+  }
+
+  return inside;
+}
+
+function isPointOnSegment(point, start, end) {
+  const [px, py] = point;
+  const [x1, y1] = start;
+  const [x2, y2] = end;
+  const cross = (px - x1) * (y2 - y1) - (py - y1) * (x2 - x1);
+
+  if (Math.abs(cross) > 1e-10) {
+    return false;
+  }
+
+  const dot = (px - x1) * (px - x2) + (py - y1) * (py - y2);
+  return dot <= 1e-10;
+}
+
+function findAdministrativeNameMatches(features, address) {
+  const candidateNames = [
+    address.state,
+    address.province,
+    address.region,
+    address.state_district,
+    address.county,
+    address.municipality,
+    address.district,
+  ]
+    .map((value) => normalizeText(value))
+    .filter(Boolean);
+
+  for (const normalizedName of [...new Set(candidateNames)]) {
+    const exactMatches = features.filter(
+      (feature) => normalizeText(feature.properties.regionName) === normalizedName,
+    );
+
+    if (exactMatches.length) {
+      return exactMatches;
+    }
+
+    const closeMatches = features.filter((feature) => {
+      const normalizedRegion = normalizeText(feature.properties.regionName);
+      return (
+        normalizedRegion.startsWith(normalizedName) ||
+        normalizedRegion.includes(normalizedName) ||
+        normalizedName.includes(normalizedRegion)
+      );
+    });
+
+    if (closeMatches.length) {
+      return closeMatches;
+    }
+  }
+
+  return [];
 }
 
 function enrichFeatures(features, iso, adm0ByIso, fallbackToCountry = false) {

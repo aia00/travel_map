@@ -27,8 +27,7 @@ const TRANSLATIONS = {
       regionSearch: "Region search",
       visitType: "Visit type",
     },
-    regionPlaceholder:
-      "Search a state, province, prefecture, or equivalent",
+    regionPlaceholder: "Search a state, province, city, or landmark",
     buttons: {
       addOrUpdate: "Add / update color",
       clearCurrent: "Clear current mark",
@@ -44,7 +43,11 @@ const TRANSLATIONS = {
       meta: "{country} · Current status: {status}",
     },
     search: {
-      noMatches: "No matches found",
+      flexHint:
+        "Can't remember the state or province? Enter a city or landmark, then press Enter.",
+      noMatches: "No direct ADM1 match. Press Enter to search a city or place.",
+      placeNoMatches:
+        "Still nothing mapped. Try another spelling, a nearby city, or the exact state / province name.",
     },
     saved: {
       emptySelectCountry: "Select a country first.",
@@ -84,7 +87,7 @@ const TRANSLATIONS = {
       continentBreakdown:
         "{residentLabel} {resident} / {travelLabel} {travel} / {transitLabel} {transit}",
       countryMetaFallback:
-        "ADM1 is unavailable for this country, so the view falls back to the country boundary.",
+        "Visited {visitedCount}/{count} displayed regions. ADM1 is unavailable for this country, so the view falls back to the country boundary.",
       countryMetaLoaded:
         "Visited {visitedCount}/{count} first-level administrative regions. Click a region to mark it.",
       countryTitleEmpty: "Administrative map",
@@ -115,11 +118,20 @@ const TRANSLATIONS = {
       countryLoadError: "Failed to load first-level administrative boundaries.",
       selectCountryFirst: "Select a country first.",
       enterRegion: "Enter a region name.",
+      searchingPlaces: "No direct ADM1 match. Searching cities and places in {country}…",
       regionNotFound:
         "No matching region was found. Pick one from the suggestions first.",
       multipleMatches:
         "Multiple regions matched. Pick the exact one before saving.",
+      placeNotFound:
+        "No city or place match could be mapped to a first-level region in {country}.",
+      placeMultipleMatches:
+        "This place could belong to multiple first-level regions. Pick the exact one first.",
+      placeLookupError:
+        "City and place search is temporarily unavailable. Try an exact administrative region name.",
       savedVisit: "{region} is now marked as {type}.",
+      savedPlaceVisit:
+        "Matched {query} to {region}, and marked it as {type}.",
       saveFailed: "Failed to save the mark. Try again.",
       selectRegionFirst:
         "Select a region from the map or search results first.",
@@ -160,7 +172,7 @@ const TRANSLATIONS = {
       regionSearch: "地区搜索",
       visitType: "足迹类型",
     },
-    regionPlaceholder: "输入州、省、府、郡等一级行政区名称",
+    regionPlaceholder: "输入州、省、城市或地名",
     buttons: {
       addOrUpdate: "添加 / 更新颜色",
       clearCurrent: "清除当前标记",
@@ -176,7 +188,10 @@ const TRANSLATIONS = {
       meta: "{country} · 当前状态：{status}",
     },
     search: {
-      noMatches: "没有找到匹配项",
+      flexHint: "如果不记得州或省，可以直接输入城市或地名，再按回车。",
+      noMatches: "没有直接匹配到一级行政区，回车可继续搜索城市或地名。",
+      placeNoMatches:
+        "还是没有归到行政区。可以换个拼写、附近城市，或直接输入州 / 省名称。",
     },
     saved: {
       emptySelectCountry: "先选择一个国家。",
@@ -215,7 +230,8 @@ const TRANSLATIONS = {
       continentNoMarks: "还没有标记。",
       continentBreakdown:
         "{residentLabel} {resident} / {travelLabel} {travel} / {transitLabel} {transit}",
-      countryMetaFallback: "该国家未能加载 ADM1，当前退回到国家边界视图。",
+      countryMetaFallback:
+        "已访问 {visitedCount}/{count} 个当前显示区域。该国家未能加载 ADM1，当前退回到国家边界视图。",
       countryMetaLoaded:
         "已访问 {visitedCount}/{count} 个一级行政区。点击区域可直接标记。",
       countryTitleEmpty: "一级行政区地图",
@@ -237,9 +253,14 @@ const TRANSLATIONS = {
       countryLoadError: "一级行政区边界加载失败。",
       selectCountryFirst: "请先选择国家。",
       enterRegion: "请输入地区名称。",
+      searchingPlaces: "没有直接匹配到一级行政区，正在继续搜索 {country} 的城市或地名…",
       regionNotFound: "没有找到这个地区，请从候选结果里点选。",
       multipleMatches: "匹配到多个地区，请先点选具体地区。",
+      placeNotFound: "没有把这个城市或地名准确归到 {country} 的一级行政区。",
+      placeMultipleMatches: "这个地名可能对应多个一级行政区，请先点选具体地区。",
+      placeLookupError: "城市 / 地名搜索暂时不可用，请改用更精确的一级行政区名称。",
       savedVisit: "{region} 已标记为 {type}。",
+      savedPlaceVisit: "已将 {query} 归到 {region}，并标记为 {type}。",
       saveFailed: "保存标记失败，请稍后重试。",
       selectRegionFirst: "请先点击地图或从搜索结果里选择地区。",
       noMarkToClear: "当前地区还没有颜色标记。",

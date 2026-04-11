@@ -19,23 +19,39 @@ export function renderMatches({
   t,
   onSelectRegion,
 }) {
-  dom.searchResults.innerHTML = "";
-
   if (!query.trim() || !selectedCountryIso || !data) {
+    dom.searchResults.innerHTML = "";
     return [];
   }
 
   const matches = findMatches(data.features, query);
 
-  if (!matches.length) {
+  renderMatchChips({
+    dom,
+    features: matches.slice(0, 8),
+    emptyText: t("search.noMatches"),
+    onSelectRegion,
+  });
+
+  return matches;
+}
+
+export function renderMatchChips({ dom, features, emptyText = "", onSelectRegion }) {
+  dom.searchResults.innerHTML = "";
+
+  if (!features.length) {
+    if (!emptyText) {
+      return;
+    }
+
     const empty = document.createElement("span");
     empty.className = "saved-chip";
-    empty.textContent = t("search.noMatches");
+    empty.textContent = emptyText;
     dom.searchResults.appendChild(empty);
-    return matches;
+    return;
   }
 
-  matches.slice(0, 8).forEach((feature) => {
+  features.forEach((feature) => {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "result-chip";
@@ -45,8 +61,6 @@ export function renderMatches({
     });
     dom.searchResults.appendChild(button);
   });
-
-  return matches;
 }
 
 export function renderSelectionCard({

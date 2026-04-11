@@ -2,6 +2,7 @@ export const SOURCES = {
   worldAtlas: "https://cdn.jsdelivr.net/npm/visionscarto-world-atlas@1/world/110m.json",
   adm0Meta: "https://www.geoboundaries.org/api/current/gbOpen/ALL/ADM0/",
   boundaryApi: "https://www.geoboundaries.org/api/current/gbOpen",
+  geocodeSearch: "https://nominatim.openstreetmap.org/search",
 };
 
 export const VISIT_TYPES = {
