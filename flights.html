@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Flight log</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Noto+Serif+SC:wght@600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="hero panel flight-hero">
+        <div class="hero-top">
+          <p class="eyebrow" data-i18n="eyebrow">Visited Atlas</p>
+          <nav class="page-nav" aria-label="Primary">
+            <a class="nav-link" href="./index.html" data-i18n="nav.home">Home</a>
+            <a class="nav-link" href="./atlas.html" data-i18n="nav.atlas">Atlas</a>
+            <a class="nav-link is-current" href="./flights.html" data-i18n="nav.flights">
+              Flights
+            </a>
+            <a class="nav-link" href="./stays.html" data-i18n="nav.stays">Hotels</a>
+          </nav>
+          <div
+            class="language-switch"
+            role="group"
+            aria-label="Language switch"
+            data-i18n-aria-label="languageSwitchAria"
+          >
+            <button type="button" class="lang-button" data-lang="zh">中文</button>
+            <button type="button" class="lang-button" data-lang="en">EN</button>
+          </div>
+        </div>
+
+        <div class="hero-copy">
+          <div>
+            <h1 data-i18n="flights.heroTitle">
+              Log flights and turn them into a personal dashboard.
+            </h1>
+            <p class="hero-text" data-i18n="flights.heroText">
+              Add each segment with exact departure and arrival airports, then review distance, air
+              time, airlines, routes, and yearly summaries.
+            </p>
+          </div>
+          <div class="hero-metrics flight-metrics">
+            <div class="metric-card">
+              <span class="metric-label" data-i18n="flights.metrics.totalFlights">
+                Flights logged
+              </span>
+              <strong class="metric-value" data-flight-metric="total">0</strong>
+            </div>
+            <div class="metric-card">
+              <span class="metric-label" data-i18n="flights.metrics.completedFlights">
+                Completed
+              </span>
+              <strong class="metric-value" data-flight-metric="completed">0</strong>
+            </div>
+            <div class="metric-card">
+              <span class="metric-label" data-i18n="flights.metrics.upcomingFlights">
+                Upcoming
+              </span>
+              <strong class="metric-value" data-flight-metric="upcoming">0</strong>
+            </div>
+            <div class="metric-card">
+              <span class="metric-label" data-i18n="flights.metrics.distanceFlown">
+                Distance flown
+              </span>
+              <strong class="metric-value" data-flight-metric="distance">0 km</strong>
+            </div>
+            <div class="metric-card">
+              <span class="metric-label" data-i18n="flights.metrics.airTime">Air time flown</span>
+              <strong class="metric-value" data-flight-metric="duration">0h</strong>
+            </div>
+            <div class="metric-card">
+              <span class="metric-label" data-i18n="flights.metrics.uniqueAirports">
+                Airports used
+              </span>
+              <strong class="metric-value" data-flight-metric="airports">0</strong>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div class="flight-grid">
+        <aside class="panel flight-form-panel">
+          <div class="section-heading compact">
+            <div>
+              <p class="section-kicker" data-i18n="nav.flights">Flights</p>
+              <h2 data-i18n="flights.formTitle">Add a flight</h2>
+            </div>
+            <p class="status-pill" id="flightStatusPill" aria-live="polite">Ready</p>
+          </div>
+
+          <p class="flight-form-text" data-i18n="flights.formText">
+            Type a 3 or 4 character airport code, choose the exact airport from the list, then
+            save the segment.
+          </p>
+
+          <form id="flightForm" class="control-form">
+            <label class="field">
+              <span data-i18n="flights.fields.airline">Airline</span>
+              <input
+                id="flightAirline"
+                type="text"
+                autocomplete="organization"
+                placeholder="Delta Air Lines"
+                data-i18n-placeholder="flights.placeholders.airline"
+                required
+              />
+            </label>
+
+            <label class="field">
+              <span data-i18n="flights.fields.flightNumber">Flight number</span>
+              <input
+                id="flightNumber"
+                type="text"
+                autocomplete="off"
+                placeholder="DL 289"
+                data-i18n-placeholder="flights.placeholders.flightNumber"
+                required
+              />
+            </label>
+
+            <label class="field">
+              <span data-i18n="flights.fields.departureCode">Departure airport code</span>
+              <input
+                id="departureCode"
+                type="text"
+                maxlength="4"
+                autocomplete="off"
+                placeholder="JFK"
+                data-i18n-placeholder="flights.placeholders.departureCode"
+                required
+              />
+            </label>
+            <div class="airport-suggestion-list" id="departureSuggestions"></div>
+            <div class="airport-selection-chip" id="departureSelected"></div>
+
+            <label class="field">
+              <span data-i18n="flights.fields.arrivalCode">Arrival airport code</span>
+              <input
+                id="arrivalCode"
+                type="text"
+                maxlength="4"
+                autocomplete="off"
+                placeholder="LAX"
+                data-i18n-placeholder="flights.placeholders.arrivalCode"
+                required
+              />
+            </label>
+            <div class="airport-suggestion-list" id="arrivalSuggestions"></div>
+            <div class="airport-selection-chip" id="arrivalSelected"></div>
+
+            <label class="field">
+              <span data-i18n="flights.fields.departureAt">Departure date and time</span>
+              <input id="departureAt" type="datetime-local" required />
+            </label>
+
+            <div class="field-row">
+              <label class="field">
+                <span data-i18n="flights.fields.durationHours">Hours</span>
+                <input id="durationHours" type="number" min="0" max="23" value="2" required />
+              </label>
+              <label class="field">
+                <span data-i18n="flights.fields.durationMinutes">Minutes</span>
+                <input id="durationMinutes" type="number" min="0" max="59" value="0" required />
+              </label>
+            </div>
+
+            <div class="field-row">
+              <label class="field">
+                <span data-i18n="flights.fields.status">Flight status</span>
+                <select id="flightStatus" required>
+                  <option value="completed" data-i18n="flights.statusLabels.completed">
+                    Completed
+                  </option>
+                  <option value="upcoming" data-i18n="flights.statusLabels.upcoming">
+                    Upcoming
+                  </option>
+                  <option value="canceled" data-i18n="flights.statusLabels.canceled">
+                    Canceled
+                  </option>
+                </select>
+              </label>
+              <label class="field">
+                <span data-i18n="flights.fields.cabinClass">Cabin</span>
+                <select id="cabinClass">
+                  <option value="economy" data-i18n="flights.cabinLabels.economy">Economy</option>
+                  <option value="premium" data-i18n="flights.cabinLabels.premium">
+                    Premium economy
+                  </option>
+                  <option value="business" data-i18n="flights.cabinLabels.business">
+                    Business
+                  </option>
+                  <option value="first" data-i18n="flights.cabinLabels.first">First</option>
+                </select>
+              </label>
+            </div>
+
+            <div class="field-row">
+              <label class="field">
+                <span data-i18n="flights.fields.aircraft">Aircraft</span>
+                <input
+                  id="flightAircraft"
+                  type="text"
+                  autocomplete="off"
+                  placeholder="Airbus A321neo"
+                  data-i18n-placeholder="flights.placeholders.aircraft"
+                />
+              </label>
+              <label class="field">
+                <span data-i18n="flights.fields.seat">Seat</span>
+                <input
+                  id="flightSeat"
+                  type="text"
+                  autocomplete="off"
+                  placeholder="14A"
+                  data-i18n-placeholder="flights.placeholders.seat"
+                />
+              </label>
+            </div>
+
+            <label class="field">
+              <span data-i18n="flights.fields.notes">Notes</span>
+              <textarea
+                id="flightNotes"
+                rows="4"
+                placeholder="Red-eye, upgraded at gate, or any note you want to keep."
+                data-i18n-placeholder="flights.placeholders.notes"
+              ></textarea>
+            </label>
+
+            <div class="form-actions">
+              <button class="primary-button" type="submit" data-i18n="buttons.addFlight">
+                Add flight
+              </button>
+              <button
+                class="ghost-button"
+                type="button"
+                id="flightResetButton"
+                data-i18n="buttons.resetFlightForm"
+              >
+                Reset form
+              </button>
+            </div>
+          </form>
+        </aside>
+
+        <main class="maps-column flight-dashboard">
+          <section class="panel flight-stats-panel">
+            <div class="section-heading">
+              <div>
+                <p class="section-kicker" data-i18n="flights.statsTitle">Flight stats</p>
+                <h2 data-i18n="flights.statsText">
+                  Completed flights drive the flown totals. Upcoming flights are tracked
+                  separately.
+                </h2>
+              </div>
+            </div>
+
+            <div class="flight-insight-grid">
+              <article class="flight-insight-card">
+                <p class="section-kicker" data-i18n="flights.labels.favoriteAirline">
+                  Most logged airline
+                </p>
+                <h3 id="favoriteAirline">Not enough data yet</h3>
+                <p id="favoriteAirlineMeta" class="flight-insight-meta"></p>
+              </article>
+              <article class="flight-insight-card">
+                <p class="section-kicker" data-i18n="flights.labels.busiestRoute">
+                  Most logged route
+                </p>
+                <h3 id="busiestRoute">Not enough data yet</h3>
+                <p id="busiestRouteMeta" class="flight-insight-meta"></p>
+              </article>
+              <article class="flight-insight-card">
+                <p class="section-kicker" data-i18n="flights.labels.longestFlight">
+                  Longest completed segment
+                </p>
+                <h3 id="longestFlight">Not enough data yet</h3>
+                <p id="longestFlightMeta" class="flight-insight-meta"></p>
+              </article>
+            </div>
+
+            <div class="flight-summary-grid">
+              <section class="flight-ranking-panel">
+                <div class="section-heading compact">
+                  <div>
+                    <p class="section-kicker" data-i18n="flights.labels.topAirlines">
+                      Top airlines
+                    </p>
+                  </div>
+                </div>
+                <div id="airlineRanking" class="flight-ranking-list"></div>
+              </section>
+
+              <section class="flight-ranking-panel">
+                <div class="section-heading compact">
+                  <div>
+                    <p class="section-kicker" data-i18n="flights.labels.topRoutes">
+                      Top routes
+                    </p>
+                  </div>
+                </div>
+                <div id="routeRanking" class="flight-ranking-list"></div>
+              </section>
+
+              <section class="flight-ranking-panel">
+                <div class="section-heading compact">
+                  <div>
+                    <p class="section-kicker" data-i18n="flights.labels.annualSummary">
+                      Yearly summary
+                    </p>
+                  </div>
+                </div>
+                <div id="annualSummary" class="flight-ranking-list"></div>
+              </section>
+            </div>
+          </section>
+
+          <section class="panel flight-history-panel">
+            <div class="section-heading compact">
+              <div>
+                <p class="section-kicker" data-i18n="flights.historyTitle">Flight history</p>
+                <h2 data-i18n="flights.historyText">
+                  Every saved segment stays editable through re-entry or removable from the list
+                  below.
+                </h2>
+              </div>
+              <label class="field flight-filter-field">
+                <span data-i18n="flights.filterLabel">Show</span>
+                <select id="flightFilter">
+                  <option value="all" data-i18n="flights.filterAll">All flights</option>
+                  <option value="completed" data-i18n="flights.filterCompleted">Completed</option>
+                  <option value="upcoming" data-i18n="flights.filterUpcoming">Upcoming</option>
+                  <option value="canceled" data-i18n="flights.filterCanceled">Canceled</option>
+                </select>
+              </label>
+            </div>
+
+            <div id="flightHistoryList" class="flight-history-list"></div>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <script type="module" src="./js/flightsPage.js"></script>
+  </body>
+</html>

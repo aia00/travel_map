@@ -1,5 +1,6 @@
 const STORAGE_KEYS = {
   visited: "visited-admin-map-v1",
+  flights: "visited-admin-map-flights-v1",
   language: "visited-admin-map-language-v1",
   uiState: "visited-admin-map-ui-state-v1",
   placeNames: "visited-admin-map-place-names-v1",
@@ -30,6 +31,26 @@ export function loadVisited() {
   } catch (error) {
     console.warn("Failed to load saved visits", error);
     return {};
+  }
+}
+
+export function saveFlights(flights) {
+  localStorage.setItem(
+    STORAGE_KEYS.flights,
+    JSON.stringify({
+      version: 1,
+      flights,
+    }),
+  );
+}
+
+export function loadFlights() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(STORAGE_KEYS.flights) ?? "{}");
+    return Array.isArray(parsed.flights) ? parsed.flights : [];
+  } catch (error) {
+    console.warn("Failed to load saved flights", error);
+    return [];
   }
 }
 

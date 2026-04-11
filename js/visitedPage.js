@@ -247,5 +247,5 @@ function buildMapLink(iso, visitKey, value) {
     region: visitKey,
     query: value.regionName,
   });
-  return `./index.html?${params.toString()}`;
+  return `./atlas.html?${params.toString()}`;
 }

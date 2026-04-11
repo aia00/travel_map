@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Visited Administrative Map</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Noto+Serif+SC:wght@600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="hero panel">
+        <div class="hero-top">
+          <p class="eyebrow" data-i18n="eyebrow">Visited Atlas</p>
+          <nav class="page-nav" aria-label="Primary">
+            <a class="nav-link" href="./index.html" data-i18n="nav.home">Home</a>
+            <a class="nav-link is-current" href="./atlas.html" data-i18n="nav.atlas">Atlas</a>
+            <a class="nav-link" href="./flights.html" data-i18n="nav.flights">Flights</a>
+            <a class="nav-link" href="./stays.html" data-i18n="nav.stays">Hotels</a>
+          </nav>
+          <div
+            class="language-switch"
+            role="group"
+            aria-label="Language switch"
+            data-i18n-aria-label="languageSwitchAria"
+          >
+            <button type="button" class="lang-button" data-lang="zh">中文</button>
+            <button type="button" class="lang-button" data-lang="en">EN</button>
+          </div>
+        </div>
+        <div class="hero-copy">
+          <div>
+            <h1 data-i18n="heroTitle">
+              Track your footprints by continent, country, and region.
+            </h1>
+            <p class="hero-text" data-i18n="heroText">
+              Choose a continent, open a country, then mark states, provinces,
+              prefectures, or equivalent first-level divisions by search or
+              directly on the map.
+            </p>
+          </div>
+          <div class="hero-metrics" id="heroMetrics">
+            <div class="metric-card">
+              <span class="metric-label" data-i18n="metrics.total">Total Marks</span>
+              <strong class="metric-value" data-metric="total">0</strong>
+            </div>
+            <div class="metric-card">
+              <span class="metric-label" data-i18n="visitTypes.resident.label">Resident</span>
+              <strong class="metric-value" data-metric="resident">0</strong>
+            </div>
+            <div class="metric-card">
+              <span class="metric-label" data-i18n="visitTypes.travel.label">Travel</span>
+              <strong class="metric-value" data-metric="travel">0</strong>
+            </div>
+            <div class="metric-card">
+              <span class="metric-label" data-i18n="visitTypes.transit.label">Transit</span>
+              <strong class="metric-value" data-metric="transit">0</strong>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <section class="continent-switch panel">
+        <div class="section-heading">
+          <div>
+            <p class="section-kicker" data-i18n="sections.continents">Continents</p>
+            <h2 data-i18n="continentSectionTitle">
+              Choose a continent first, then drill into each country’s
+              administrative regions.
+            </h2>
+          </div>
+          <p class="status-pill" id="statusPill" aria-live="polite">Ready</p>
+        </div>
+        <div class="continent-tabs" id="continentTabs"></div>
+      </section>
+
+      <div class="app-grid">
+        <aside class="panel controls-panel">
+          <div class="section-heading compact">
+            <div>
+              <p class="section-kicker" data-i18n="sections.markPlaces">Mark Places</p>
+              <h2 data-i18n="markPlacesTitle">Search and color-code</h2>
+            </div>
+          </div>
+
+          <form id="placeForm" class="control-form">
+            <label class="field">
+              <span data-i18n="fields.country">Country</span>
+              <select id="countrySelect" name="country"></select>
+            </label>
+
+            <label class="field">
+              <span data-i18n="fields.regionSearch">Region search</span>
+              <input
+                id="regionInput"
+                name="region"
+                type="search"
+                placeholder="Search a state, province, prefecture, or equivalent"
+                data-i18n-placeholder="regionPlaceholder"
+                autocomplete="off"
+                required
+              />
+              <p class="field-hint" data-i18n="search.flexHint">
+                Can't remember the state or province? Enter a city or landmark,
+                then press Enter.
+              </p>
+            </label>
+
+            <div class="search-results" id="searchResults"></div>
+
+            <label class="field">
+              <span data-i18n="fields.visitType">Visit type</span>
+              <select id="visitTypeSelect" name="visitType" required>
+                <option value="resident">Resident</option>
+                <option value="travel" selected>Travel</option>
+                <option value="transit">Transit</option>
+              </select>
+            </label>
+
+            <div class="form-actions">
+              <button
+                class="primary-button"
+                type="submit"
+                data-i18n="buttons.addOrUpdate"
+              >
+                Add / update color
+              </button>
+              <button
+                class="ghost-button"
+                type="button"
+                id="clearRegionButton"
+                data-i18n="buttons.clearCurrent"
+              >
+                Clear current mark
+              </button>
+            </div>
+          </form>
+
+          <section class="selection-card" id="selectionCard">
+            <div class="selection-copy">
+              <p class="section-kicker" data-i18n="sections.currentSelection">
+                Current Selection
+              </p>
+              <h3 id="selectionTitle">No region selected yet</h3>
+              <p id="selectionMeta">Click a map region or type into the search box.</p>
+            </div>
+            <div class="selection-actions" id="selectionActions"></div>
+          </section>
+
+          <section class="legend-block">
+            <div class="legend-item">
+              <span class="legend-swatch resident"></span>
+              <div>
+                <strong data-i18n="visitTypes.resident.label">Resident</strong>
+                <p data-i18n="visitTypes.resident.description">
+                  Long-term living, working, or sustained stay.
+                </p>
+              </div>
+            </div>
+            <div class="legend-item">
+              <span class="legend-swatch travel"></span>
+              <div>
+                <strong data-i18n="visitTypes.travel.label">Travel</strong>
+                <p data-i18n="visitTypes.travel.description">
+                  Trips, business travel, study, or short visits.
+                </p>
+              </div>
+            </div>
+            <div class="legend-item">
+              <span class="legend-swatch transit"></span>
+              <div>
+                <strong data-i18n="visitTypes.transit.label">Transit</strong>
+                <p data-i18n="visitTypes.transit.description">
+                  Passing through, layovers, transfers, or brief stops.
+                </p>
+              </div>
+            </div>
+          </section>
+
+          <section class="saved-panel">
+            <div class="section-heading compact">
+              <div>
+                <p class="section-kicker" data-i18n="sections.saved">Saved</p>
+                <h2 data-i18n="archive.title">Visited archive</h2>
+              </div>
+            </div>
+            <div id="savedList" class="saved-list"></div>
+            <a class="primary-button archive-link" href="./visited.html" data-i18n="archive.openPage">
+              Open visited page
+            </a>
+          </section>
+        </aside>
+
+        <main class="maps-column">
+          <section class="panel map-card">
+            <div class="map-header">
+              <div>
+                <p class="section-kicker" data-i18n="sections.continentView">
+                  Continent View
+                </p>
+                <h2 id="continentTitle">Continent map</h2>
+              </div>
+              <p id="continentMeta" class="map-meta">
+                Click a country to switch to its administrative regions.
+              </p>
+            </div>
+            <div class="map-stage">
+              <svg
+                id="continentMap"
+                viewBox="0 0 960 560"
+                role="img"
+                aria-label="Continent map"
+              ></svg>
+            </div>
+          </section>
+
+          <section class="panel map-card">
+            <div class="map-header">
+              <div>
+                <p class="section-kicker" data-i18n="sections.adminLevel1">
+                  Administrative Level 1
+                </p>
+                <h2 id="countryTitle">Administrative map</h2>
+              </div>
+              <p id="countryMeta" class="map-meta">
+                Select a country to load its first-level administrative
+                boundaries.
+              </p>
+            </div>
+            <div class="map-stage detail-stage">
+              <div
+                class="map-zoom-controls"
+                role="group"
+                aria-label="Administrative map zoom controls"
+                data-i18n-aria-label="aria.countryMapZoom"
+              >
+                <button
+                  type="button"
+                  class="map-zoom-button"
+                  id="countryZoomIn"
+                  aria-label="Zoom in"
+                  data-i18n-aria-label="aria.zoomIn"
+                >
+                  +
+                </button>
+                <button
+                  type="button"
+                  class="map-zoom-button"
+                  id="countryZoomOut"
+                  aria-label="Zoom out"
+                  data-i18n-aria-label="aria.zoomOut"
+                >
+                  -
+                </button>
+              </div>
+              <svg
+                id="countryMap"
+                viewBox="0 0 960 620"
+                role="img"
+                aria-label="Administrative map"
+              ></svg>
+            </div>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <div class="tooltip" id="tooltip" hidden></div>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
