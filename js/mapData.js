@@ -203,7 +203,7 @@ function dedupeFeatures(features) {
   return [...new Map(features.map((feature) => [feature.properties.visitKey, feature])).values()];
 }
 
-function findFeatureContainingPoint(features, point) {
+export function findFeatureContainingPoint(features, point) {
   if (!Number.isFinite(point[0]) || !Number.isFinite(point[1])) {
     return null;
   }

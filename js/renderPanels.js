@@ -17,6 +17,7 @@ export function renderMatches({
   data,
   findMatches,
   t,
+  getFeatureLabel,
   onSelectRegion,
 }) {
   if (!query.trim() || !selectedCountryIso || !data) {
@@ -30,13 +31,20 @@ export function renderMatches({
     dom,
     features: matches.slice(0, 8),
     emptyText: t("search.noMatches"),
+    getFeatureLabel,
     onSelectRegion,
   });
 
   return matches;
 }
 
-export function renderMatchChips({ dom, features, emptyText = "", onSelectRegion }) {
+export function renderMatchChips({
+  dom,
+  features,
+  emptyText = "",
+  getFeatureLabel = (feature) => feature.properties.regionName,
+  onSelectRegion,
+}) {
   dom.searchResults.innerHTML = "";
 
   if (!features.length) {
@@ -55,7 +63,7 @@ export function renderMatchChips({ dom, features, emptyText = "", onSelectRegion
     const button = document.createElement("button");
     button.type = "button";
     button.className = "result-chip";
-    button.textContent = feature.properties.regionName;
+    button.textContent = getFeatureLabel(feature);
     button.addEventListener("click", () => {
       onSelectRegion(feature);
     });
@@ -66,6 +74,7 @@ export function renderMatchChips({ dom, features, emptyText = "", onSelectRegion
 export function renderSelectionCard({
   dom,
   selectedFeature,
+  selectedTitle,
   selectedVisit,
   countryName,
   t,
@@ -81,7 +90,7 @@ export function renderSelectionCard({
     return;
   }
 
-  dom.selectionTitle.textContent = selectedFeature.properties.regionName;
+  dom.selectionTitle.textContent = selectedTitle;
   dom.selectionMeta.textContent = t("selection.meta", {
     country: countryName,
     status: selectedVisit
@@ -115,6 +124,8 @@ export function renderSavedList({
   entries,
   selectedRegionKey,
   t,
+  getEntryLabel,
+  getEntryCountryName,
   getVisitTypeLabel,
   onSelectEntry,
   onDeleteEntry,
@@ -139,8 +150,8 @@ export function renderSavedList({
     left.type = "button";
     left.className = "saved-item-trigger";
     left.innerHTML = `
-      <strong>${value.regionName}</strong>
-      <p>${value.countryName}</p>
+      <strong>${getEntryLabel(visitKey, value)}</strong>
+      <p>${getEntryCountryName(visitKey, value)}</p>
       <div class="saved-meta">
         <span class="saved-chip ${value.type}">${getVisitTypeLabel(value.type)}</span>
       </div>

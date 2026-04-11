@@ -3,6 +3,9 @@ export const SOURCES = {
   adm0Meta: "https://www.geoboundaries.org/api/current/gbOpen/ALL/ADM0/",
   boundaryApi: "https://www.geoboundaries.org/api/current/gbOpen",
   geocodeSearch: "https://nominatim.openstreetmap.org/search",
+  airportsCsv: "https://davidmegginson.github.io/ourairports-data/airports.csv",
+  countryNamesZh:
+    "https://cdn.jsdelivr.net/npm/i18n-iso-countries@7.14.0/langs/zh.json",
 };
 
 export const VISIT_TYPES = {

@@ -58,6 +58,7 @@ export function renderCountrySelect({
   continentTitle,
   continentMeta,
   countryPlaceholder,
+  getCountryLabel,
 }) {
   dom.countrySelect.innerHTML = "";
 
@@ -72,7 +73,7 @@ export function renderCountrySelect({
   countries.forEach((country) => {
     const option = document.createElement("option");
     option.value = country.boundaryISO;
-    option.textContent = country.boundaryName;
+    option.textContent = getCountryLabel(country);
     option.selected = country.boundaryISO === selectedCountryIso;
     dom.countrySelect.appendChild(option);
   });
@@ -89,6 +90,7 @@ export function renderContinentMap({
   getCountrySummaryColor,
   summarizeCountry,
   t,
+  getCountryLabel,
   getVisitTypeLabel,
   onSelectCountry,
   onClearCountrySelection,
@@ -153,7 +155,7 @@ export function renderContinentMap({
     .on("mousemove", (event, feature) => {
       const summary = summarizeCountry(feature.properties.iso);
       const lines = [
-        `<strong>${feature.properties.meta.boundaryName}</strong>`,
+        `<strong>${getCountryLabel(feature.properties.meta)}</strong>`,
         t("map.continentMarkedRegions", { count: summary.total }),
       ];
 
@@ -202,6 +204,9 @@ export function renderCountryMap({
   selectedRegionKey,
   getRegionFill,
   t,
+  getCountryLabel,
+  getRegionLabel,
+  onHoverRegion,
   onSelectRegion,
   onClearSelection,
   getVisitLabel,
@@ -273,9 +278,10 @@ export function renderCountryMap({
       onSelectRegion(feature);
     })
     .on("mousemove", (event, feature) => {
+      onHoverRegion(feature);
       const lines = [
-        `<strong>${feature.properties.regionName}</strong>`,
-        `${countryMeta?.boundaryName ?? ""}`,
+        `<strong>${getRegionLabel(feature)}</strong>`,
+        `${getCountryLabel(countryMeta)}`,
         t("map.adminStatus", { status: getVisitLabel(feature.properties.visitKey) }),
       ];
       showTooltip(dom, event, lines.join("<br />"));

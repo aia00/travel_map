@@ -4,7 +4,6 @@ export function queryDom() {
     continentTabs: document.querySelector("#continentTabs"),
     countrySelect: document.querySelector("#countrySelect"),
     regionInput: document.querySelector("#regionInput"),
-    regionSuggestions: document.querySelector("#regionSuggestions"),
     searchResults: document.querySelector("#searchResults"),
     visitTypeSelect: document.querySelector("#visitTypeSelect"),
     placeForm: document.querySelector("#placeForm"),

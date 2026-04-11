@@ -27,7 +27,7 @@ const TRANSLATIONS = {
       regionSearch: "Region search",
       visitType: "Visit type",
     },
-    regionPlaceholder: "Search a state, province, city, or landmark",
+    regionPlaceholder: "Search a state, province, city, airport code, or landmark",
     buttons: {
       addOrUpdate: "Add / update color",
       clearCurrent: "Clear current mark",
@@ -44,8 +44,9 @@ const TRANSLATIONS = {
     },
     search: {
       flexHint:
-        "Can't remember the state or province? Enter a city or landmark, then press Enter.",
-      noMatches: "No direct ADM1 match. Press Enter to search a city or place.",
+        "You can enter a state, city, airport code, or landmark, then press Enter.",
+      noMatches:
+        "No direct ADM1 match. Press Enter to search a city, airport code, or place.",
       placeNoMatches:
         "Still nothing mapped. Try another spelling, a nearby city, or the exact state / province name.",
     },
@@ -118,11 +119,17 @@ const TRANSLATIONS = {
       countryLoadError: "Failed to load first-level administrative boundaries.",
       selectCountryFirst: "Select a country first.",
       enterRegion: "Enter a region name.",
+      searchingAirportCode:
+        "Looking up airport code {code} in {country}…",
       searchingPlaces: "No direct ADM1 match. Searching cities and places in {country}…",
       regionNotFound:
         "No matching region was found. Pick one from the suggestions first.",
       multipleMatches:
         "Multiple regions matched. Pick the exact one before saving.",
+      airportCodeNotFound:
+        "No airport with code {code} could be mapped to a first-level region in {country}.",
+      airportCodeMultipleMatches:
+        "This airport code maps to multiple first-level regions. Pick the exact one first.",
       placeNotFound:
         "No city or place match could be mapped to a first-level region in {country}.",
       placeMultipleMatches:
@@ -130,6 +137,8 @@ const TRANSLATIONS = {
       placeLookupError:
         "City and place search is temporarily unavailable. Try an exact administrative region name.",
       savedVisit: "{region} is now marked as {type}.",
+      savedAirportVisit:
+        "Matched airport code {query} to {region}, and marked it as {type}.",
       savedPlaceVisit:
         "Matched {query} to {region}, and marked it as {type}.",
       saveFailed: "Failed to save the mark. Try again.",
@@ -172,7 +181,7 @@ const TRANSLATIONS = {
       regionSearch: "地区搜索",
       visitType: "足迹类型",
     },
-    regionPlaceholder: "输入州、省、城市或地名",
+    regionPlaceholder: "输入州、省、城市、机场代码或地名",
     buttons: {
       addOrUpdate: "添加 / 更新颜色",
       clearCurrent: "清除当前标记",
@@ -188,8 +197,8 @@ const TRANSLATIONS = {
       meta: "{country} · 当前状态：{status}",
     },
     search: {
-      flexHint: "如果不记得州或省，可以直接输入城市或地名，再按回车。",
-      noMatches: "没有直接匹配到一级行政区，回车可继续搜索城市或地名。",
+      flexHint: "可以直接输入州、省、城市、机场代码或地名，再按回车。",
+      noMatches: "没有直接匹配到一级行政区，回车可继续搜索城市、机场代码或地名。",
       placeNoMatches:
         "还是没有归到行政区。可以换个拼写、附近城市，或直接输入州 / 省名称。",
     },
@@ -253,13 +262,17 @@ const TRANSLATIONS = {
       countryLoadError: "一级行政区边界加载失败。",
       selectCountryFirst: "请先选择国家。",
       enterRegion: "请输入地区名称。",
+      searchingAirportCode: "正在查找机场代码 {code} 在 {country} 对应的一级行政区…",
       searchingPlaces: "没有直接匹配到一级行政区，正在继续搜索 {country} 的城市或地名…",
       regionNotFound: "没有找到这个地区，请从候选结果里点选。",
       multipleMatches: "匹配到多个地区，请先点选具体地区。",
+      airportCodeNotFound: "没有把机场代码 {code} 准确归到 {country} 的一级行政区。",
+      airportCodeMultipleMatches: "这个机场代码可能对应多个一级行政区，请先点选具体地区。",
       placeNotFound: "没有把这个城市或地名准确归到 {country} 的一级行政区。",
       placeMultipleMatches: "这个地名可能对应多个一级行政区，请先点选具体地区。",
       placeLookupError: "城市 / 地名搜索暂时不可用，请改用更精确的一级行政区名称。",
       savedVisit: "{region} 已标记为 {type}。",
+      savedAirportVisit: "已将机场代码 {query} 归到 {region}，并标记为 {type}。",
       savedPlaceVisit: "已将 {query} 归到 {region}，并标记为 {type}。",
       saveFailed: "保存标记失败，请稍后重试。",
       selectRegionFirst: "请先点击地图或从搜索结果里选择地区。",

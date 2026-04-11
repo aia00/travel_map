@@ -2,6 +2,7 @@ const STORAGE_KEYS = {
   visited: "visited-admin-map-v1",
   language: "visited-admin-map-language-v1",
   uiState: "visited-admin-map-ui-state-v1",
+  placeNames: "visited-admin-map-place-names-v1",
 };
 
 const DEFAULT_UI_STATE = {
@@ -64,5 +65,30 @@ export function loadUiState() {
   } catch (error) {
     console.warn("Failed to load saved UI state", error);
     return { ...DEFAULT_UI_STATE };
+  }
+}
+
+export function savePlaceNames(placeNames) {
+  localStorage.setItem(
+    STORAGE_KEYS.placeNames,
+    JSON.stringify({
+      version: 1,
+      placeNames,
+    }),
+  );
+}
+
+export function loadPlaceNames() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(STORAGE_KEYS.placeNames) ?? "{}");
+    return {
+      regions: {},
+      ...parsed.placeNames,
+    };
+  } catch (error) {
+    console.warn("Failed to load place name cache", error);
+    return {
+      regions: {},
+    };
   }
 }

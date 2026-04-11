@@ -334,6 +334,34 @@ html[lang="en"] .hero-text {
   transition: border-color var(--ease), box-shadow var(--ease), transform var(--ease);
 }
 
+.field select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  cursor: pointer;
+  padding-right: 48px;
+  background-color: rgba(255, 252, 246, 0.97);
+  background-image:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.66), rgba(255, 255, 255, 0)),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 14 14' fill='none'%3E%3Cpath d='M3 5.25 7 9l4-3.75' stroke='%23143C5A' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat, no-repeat;
+  background-position: 0 0, calc(100% - 16px) 50%;
+  background-size: auto, 14px 14px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.72),
+    inset 0 -1px 0 rgba(20, 37, 52, 0.04);
+}
+
+.field select:hover {
+  border-color: rgba(29, 74, 114, 0.3);
+  transform: translateY(-1px);
+}
+
+.field select option {
+  color: var(--ink);
+  background: #fffaf2;
+}
+
 .field input:focus,
 .field select:focus {
   border-color: rgba(29, 74, 114, 0.44);
@@ -341,10 +369,20 @@ html[lang="en"] .hero-text {
 }
 
 .search-results {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
   gap: 8px;
-  min-height: 12px;
+  min-height: 0;
+}
+
+.search-results:not(:empty) {
+  padding: 10px;
+  border-radius: 24px;
+  border: 1px solid rgba(20, 37, 52, 0.1);
+  background:
+    linear-gradient(180deg, rgba(255, 252, 246, 0.98), rgba(244, 236, 223, 0.92));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.72),
+    0 18px 36px rgba(20, 37, 52, 0.08);
 }
 
 .result-chip,
@@ -358,8 +396,23 @@ html[lang="en"] .hero-text {
 }
 
 .result-chip {
-  padding: 8px 12px;
+  width: 100%;
+  display: block;
+  padding: 12px 14px;
+  text-align: left;
+  border-radius: 16px;
+  font-size: 0.92rem;
+  font-weight: 600;
+  background:
+    linear-gradient(135deg, rgba(255, 252, 246, 0.98), rgba(232, 221, 204, 0.88));
+}
+
+.search-results .saved-chip {
+  display: block;
+  padding: 12px 14px;
+  border-radius: 16px;
   font-size: 0.88rem;
+  line-height: 1.45;
 }
 
 .form-actions,
