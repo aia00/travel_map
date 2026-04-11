@@ -30,6 +30,20 @@ export async function findAirportMatches({ query, countryIsoAlpha3, features }) 
   return dedupeFeatures(matchedFeatures);
 }
 
+export async function findAirportCandidates(query) {
+  const normalizedCode = String(query ?? "").trim().toUpperCase();
+
+  if (!looksLikeAirportCode(normalizedCode)) {
+    return [];
+  }
+
+  const airportIndex = await ensureAirportIndex();
+  return (airportIndex.get(normalizedCode) ?? []).map((airport) => ({
+    ...airport,
+    matchedCode: normalizedCode,
+  }));
+}
+
 function ensureAirportIndex() {
   if (!airportIndexPromise) {
     airportIndexPromise = fetch(SOURCES.airportsCsv)
@@ -48,6 +62,10 @@ function ensureAirportIndex() {
 
 function buildAirportIndex(csvText) {
   const rows = csvText.split(/\r?\n/);
+  const headers = parseCsvLine(rows[0] ?? "");
+  const columnIndex = Object.fromEntries(
+    headers.map((header, index) => [header, index]),
+  );
   const airportIndex = new Map();
 
   for (let rowIndex = 1; rowIndex < rows.length; rowIndex += 1) {
@@ -58,24 +76,31 @@ function buildAirportIndex(csvText) {
     }
 
     const fields = parseCsvLine(line);
-    if (fields.length < 16) {
+    if (fields.length < headers.length) {
       continue;
     }
 
-    const latitude = Number(fields[4]);
-    const longitude = Number(fields[5]);
+    const latitude = Number(getField(fields, columnIndex, "latitude_deg"));
+    const longitude = Number(getField(fields, columnIndex, "longitude_deg"));
 
     if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
       continue;
     }
 
     const airport = {
-      countryAlpha2: fields[8],
+      ident: getField(fields, columnIndex, "ident"),
+      name: getField(fields, columnIndex, "name"),
+      municipality: getField(fields, columnIndex, "municipality"),
+      regionCode: getField(fields, columnIndex, "iso_region"),
+      countryAlpha2: getField(fields, columnIndex, "iso_country"),
+      gpsCode: getField(fields, columnIndex, "gps_code"),
+      iataCode: getField(fields, columnIndex, "iata_code"),
+      localCode: getField(fields, columnIndex, "local_code"),
       latitude,
       longitude,
     };
 
-    [fields[1], fields[12], fields[13], fields[14], fields[15]].forEach((code) => {
+    [airport.ident, airport.gpsCode, airport.iataCode, airport.localCode].forEach((code) => {
       addAirportCode(airportIndex, code, airport);
     });
   }
@@ -128,6 +153,18 @@ function parseCsvLine(line) {
 
 function dedupeFeatures(features) {
   return [...new Map(features.map((feature) => [feature.properties.visitKey, feature])).values()];
+}
+
+function getField(fields, columnIndex, fieldName) {
+  return fields[columnIndex[fieldName] ?? -1] ?? "";
+}
+
+export function toAlpha3CountryCode(alpha2) {
+  if (String(alpha2 ?? "").toUpperCase() === "XK") {
+    return "XKX";
+  }
+
+  return isoCountries.alpha2ToAlpha3(alpha2 ?? "") ?? "";
 }
 
 function toAlpha2CountryCode(alpha3) {

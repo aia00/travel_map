@@ -130,12 +130,7 @@ export function findMatches(features, query) {
     .map((item) => item.feature);
 }
 
-export async function findPlaceMatches({
-  query,
-  countryName,
-  features,
-  language,
-}) {
+export async function searchPlaceResults({ query, language, countryName = "" }) {
   const params = new URLSearchParams({
     q: countryName ? `${query}, ${countryName}` : query,
     format: "jsonv2",
@@ -147,7 +142,20 @@ export async function findPlaceMatches({
     language === "zh" ? "zh-CN,zh,en" : "en",
   );
 
-  const results = await fetchJson(`${SOURCES.geocodeSearch}?${params.toString()}`);
+  return fetchJson(`${SOURCES.geocodeSearch}?${params.toString()}`);
+}
+
+export async function findPlaceMatches({
+  query,
+  countryName,
+  features,
+  language,
+}) {
+  const results = await searchPlaceResults({
+    query,
+    countryName,
+    language,
+  });
   const matchedFeatures = [];
 
   results.forEach((candidate) => {
@@ -281,7 +289,7 @@ function isPointOnSegment(point, start, end) {
   return dot <= 1e-10;
 }
 
-function findAdministrativeNameMatches(features, address) {
+export function findAdministrativeNameMatches(features, address) {
   const candidateNames = [
     address.state,
     address.province,

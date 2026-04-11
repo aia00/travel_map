@@ -10,15 +10,18 @@ import {
 } from "./i18n.js";
 import {
   ensureAdminData,
+  findAdministrativeNameMatches,
+  findFeatureContainingPoint,
   findMatches,
-  findPlaceMatches,
   getCountriesForContinent,
   loadWorldData,
   normalizeText,
+  searchPlaceResults,
 } from "./mapData.js";
 import {
-  findAirportMatches,
+  findAirportCandidates,
   looksLikeAirportCode,
+  toAlpha3CountryCode,
 } from "./airportData.js";
 import {
   ensureZhCountryNamesLoaded,
@@ -35,10 +38,9 @@ import {
   renderCountrySelect,
 } from "./renderMaps.js";
 import {
-  renderMatchChips,
-  renderMatches,
+  renderArchiveSummary,
   renderMetrics,
-  renderSavedList,
+  renderSearchCandidates,
   renderSelectionCard,
   renderStatus,
 } from "./renderPanels.js";
@@ -55,7 +57,10 @@ import {
 
 export function bootstrapApp() {
   const dom = queryDom();
-  const savedUiState = loadUiState();
+  const savedUiState = {
+    ...loadUiState(),
+    ...loadUrlState(),
+  };
 
   const state = {
     language: loadLanguage(),
@@ -70,11 +75,14 @@ export function bootstrapApp() {
     activeMatches: [],
     placeNames: loadPlaceNames(),
     placeSearchCache: new Map(),
+    globalSearchCache: new Map(),
     lastPlaceSearchAt: 0,
     regionNameRequests: new Map(),
     countryNamesReady: false,
     visited: loadVisited(),
     requestToken: 0,
+    searchToken: 0,
+    searchTimer: 0,
     status: {
       key: "status.ready",
       tone: "",
@@ -101,18 +109,34 @@ export function bootstrapApp() {
       boundState.selectedCountryIso = event.target.value || null;
       boundState.selectedRegionKey = null;
       boundDom.regionInput.value = "";
-      boundDom.searchResults.innerHTML = "";
+      clearSearchResults();
       persistUiState();
       renderSelectionPanel();
       renderContinentView();
-      renderSavedRegions();
+      renderArchivePanel();
       await loadSelectedCountry();
       renderCountryView();
     });
 
     boundDom.regionInput.addEventListener("input", () => {
       persistUiState();
-      boundState.activeMatches = renderSearchMatches(boundDom.regionInput.value);
+      if (!boundDom.regionInput.value.trim()) {
+        clearSearchResults();
+        return;
+      }
+
+      const selectedFeature = getSelectedFeature();
+      if (
+        selectedFeature &&
+        !queryMatchesSelectedFeature(boundDom.regionInput.value, selectedFeature)
+      ) {
+        boundState.selectedRegionKey = null;
+        persistUiState();
+        renderSelectionPanel();
+        renderCountryView();
+      }
+
+      scheduleSearch(boundDom.regionInput.value);
     });
 
     boundDom.visitTypeSelect.addEventListener("change", () => {
@@ -135,11 +159,11 @@ export function bootstrapApp() {
         ensureCountryNamesReady();
         if (boundState.adm0Meta.length) {
           renderAll();
-          boundState.activeMatches = renderSearchMatches(boundDom.regionInput.value);
+          renderActiveSearchResults();
         } else {
           renderContinentTabsView();
           renderSelectionPanel();
-          renderSavedRegions();
+          renderArchivePanel();
           renderMetricCards();
         }
         renderCurrentStatus();
@@ -152,7 +176,7 @@ export function bootstrapApp() {
 
     renderContinentTabsView();
     renderSelectionPanel();
-    renderSavedRegions();
+    renderArchivePanel();
     renderMetricCards();
     setStatus("status.loadingGlobalData", "loading");
 
@@ -162,6 +186,7 @@ export function bootstrapApp() {
       currentState.adm0ByIso = worldData.adm0ByIso;
       currentState.worldFeatures = worldData.worldFeatures;
       ensureCountryNamesReady();
+      syncContinentWithSelectedCountry();
 
       ensureSelectedCountry();
       persistUiState();
@@ -169,7 +194,9 @@ export function bootstrapApp() {
       renderContinentView();
       await loadSelectedCountry();
       renderAll();
-      state.activeMatches = renderSearchMatches(dom.regionInput.value);
+      if (dom.regionInput.value.trim() && !state.selectedRegionKey) {
+        scheduleSearch(dom.regionInput.value, { immediate: true, preserveStatus: true });
+      }
       setStatus("status.ready", "success");
     } catch (error) {
       console.error(error);
@@ -206,9 +233,9 @@ export function bootstrapApp() {
 
       persistUiState();
       renderCountryView();
-      renderSavedRegions();
+      renderArchivePanel();
       renderSelectionPanel();
-      state.activeMatches = renderSearchMatches(dom.regionInput.value);
+      renderActiveSearchResults();
       setStatus("status.loadedCountry", "success", {
         country: getCountryLabel(meta) || meta?.boundaryName || iso,
       });
@@ -226,13 +253,7 @@ export function bootstrapApp() {
   async function handleSubmit(event) {
     event.preventDefault();
 
-    if (!state.selectedCountryIso) {
-      setStatus("status.selectCountryFirst", "error");
-      return;
-    }
-
     try {
-      const data = await ensureAdminData(state, state.selectedCountryIso);
       const query = dom.regionInput.value.trim();
 
       if (!query) {
@@ -240,94 +261,24 @@ export function bootstrapApp() {
         return;
       }
 
-      const exact = data.features.find(
-        (feature) =>
-          normalizeText(feature.properties.regionName) === normalizeText(query),
-      );
-      let matchSource = "direct";
-      let matches = exact ? [exact] : findMatches(data.features, query);
-      const airportLikeQuery = looksLikeAirportCode(query);
-
-      if (!matches.length && airportLikeQuery) {
-        setStatus("status.searchingAirportCode", "loading", {
-          code: query.toUpperCase(),
-          country: getCountryLabelByIso(state.selectedCountryIso),
+      const selectedFeature = getSelectedFeature();
+      if (selectedFeature && queryMatchesSelectedFeature(query, selectedFeature)) {
+        const type = dom.visitTypeSelect.value;
+        saveVisit(selectedFeature, type, {
+          query,
+          statusKey: "status.savedVisit",
         });
-
-        try {
-          matches = await lookupAirportMatches(query, data.features);
-          if (matches.length) {
-            matchSource = "airport";
-          }
-        } catch (error) {
-          console.warn("Airport code lookup failed", error);
-        }
-      }
-
-      if (!matches.length) {
-        setStatus("status.searchingPlaces", "loading", {
-          country: getCountryLabelByIso(state.selectedCountryIso),
-        });
-
-        try {
-          matches = await lookupPlaceMatches(query, data.features);
-          matchSource = "place";
-        } catch (error) {
-          console.error(error);
-          state.activeMatches = renderPlaceRetryHint();
-          setStatus("status.placeLookupError", "error");
-          return;
-        }
-      }
-
-      if (!matches.length) {
-        state.activeMatches =
-          matchSource === "place" ? renderPlaceRetryHint() : renderSearchMatches(query);
-        setStatus(
-          airportLikeQuery
-            ? "status.airportCodeNotFound"
-            : matchSource === "place"
-              ? "status.placeNotFound"
-              : "status.regionNotFound",
-          "error",
-          {
-            code: query.toUpperCase(),
-            country: getCountryLabelByIso(state.selectedCountryIso),
-          },
-        );
         return;
       }
 
-      if (!exact && matches.length > 1) {
-        state.activeMatches =
-          matchSource === "place" || matchSource === "airport"
-            ? renderResolvedMatches(matches)
-            : renderSearchMatches(query);
-        setStatus(
-          matchSource === "airport"
-            ? "status.airportCodeMultipleMatches"
-            : matchSource === "place"
-              ? "status.placeMultipleMatches"
-              : "status.multipleMatches",
-          "error",
-        );
+      const matches = await runSearch(query, { explicit: true });
+
+      if (!matches.length) {
         return;
       }
-
-      const feature = matches[0];
-      const type = dom.visitTypeSelect.value;
-      saveVisit(feature, type, {
-        query,
-        statusKey:
-          matchSource === "airport"
-            ? "status.savedAirportVisit"
-            : matchSource === "place"
-              ? "status.savedPlaceVisit"
-              : "status.savedVisit",
-      });
     } catch (error) {
       console.error(error);
-      setStatus("status.saveFailed", "error");
+      setStatus("status.placeLookupError", "error");
     }
   }
 
@@ -378,13 +329,21 @@ export function bootstrapApp() {
     }
   }
 
+  function syncContinentWithSelectedCountry() {
+    const meta = state.adm0ByIso.get(state.selectedCountryIso);
+
+    if (meta?.uiContinent) {
+      state.selectedContinent = meta.uiContinent;
+    }
+  }
+
   function renderAll() {
     renderContinentTabsView();
     renderCountrySelectView();
     renderContinentView();
     renderCountryView();
     renderSelectionPanel();
-    renderSavedRegions();
+    renderArchivePanel();
     renderMetricCards();
   }
 
@@ -402,14 +361,14 @@ export function bootstrapApp() {
         state.selectedContinent = continentId;
         state.selectedRegionKey = null;
         dom.regionInput.value = "";
-        dom.searchResults.innerHTML = "";
+        clearSearchResults();
         ensureSelectedCountry();
         persistUiState();
         renderContinentTabsView();
         renderCountrySelectView();
         renderContinentView();
         renderSelectionPanel();
-        renderSavedRegions();
+        renderArchivePanel();
         await loadSelectedCountry();
         renderCountryView();
       },
@@ -450,12 +409,12 @@ export function bootstrapApp() {
         state.selectedCountryIso = iso;
         state.selectedRegionKey = null;
         dom.regionInput.value = "";
-        dom.searchResults.innerHTML = "";
+        clearSearchResults();
         persistUiState();
         renderCountrySelectView();
         renderContinentView();
         renderSelectionPanel();
-        renderSavedRegions();
+        renderArchivePanel();
         await loadSelectedCountry();
         renderCountryView();
       },
@@ -532,64 +491,36 @@ export function bootstrapApp() {
       selectedFeature,
       selectedTitle: selectedFeature ? getRegionLabel(selectedFeature) : "",
       selectedVisit,
+      activeVisitType: dom.visitTypeSelect.value,
       countryName: selectedFeature ? getCountryLabelByIso(selectedFeature.properties.iso) : "",
       t: translate,
       getVisitTypeLabel: getVisitLabel,
       onApplyType: (type) => {
-        state.visited[selectedFeature.properties.visitKey] = {
-          iso: selectedFeature.properties.iso,
-          countryName,
-          regionName: selectedFeature.properties.regionName,
-          type,
-          updatedAt: new Date().toISOString(),
-        };
-        saveVisited(state.visited);
+        dom.visitTypeSelect.value = type;
         persistUiState();
-        renderAll();
-        setStatus("status.updatedVisit", "success", {
-          region: getRegionLabel(selectedFeature),
-          type: getVisitLabel(type),
-        });
+        renderSelectionPanel();
       },
       onClear: clearCurrentSelection,
     });
   }
 
-  function renderSavedRegions() {
-    const entries = Object.entries(state.visited)
-      .filter(([, value]) => value.iso === state.selectedCountryIso)
-      .sort((left, right) => left[1].regionName.localeCompare(right[1].regionName));
+  function renderArchivePanel() {
+    const countryCount = new Set(
+      Object.values(state.visited).map((entry) => entry.iso),
+    ).size;
+    const currentCountryCount = state.selectedCountryIso
+      ? Object.values(state.visited).filter((entry) => entry.iso === state.selectedCountryIso)
+          .length
+      : 0;
 
-    renderSavedList({
+    renderArchiveSummary({
       dom,
-      selectedCountryIso: state.selectedCountryIso,
-      entries,
-      selectedRegionKey: state.selectedRegionKey,
+      totals: {
+        total: Object.keys(state.visited).length,
+        countries: countryCount,
+      },
+      currentCountryCount,
       t: translate,
-      getEntryLabel: getSavedRegionLabel,
-      getEntryCountryName: getSavedCountryLabel,
-      getVisitTypeLabel: getVisitLabel,
-      onSelectEntry: (visitKey, value) => {
-        state.selectedRegionKey = visitKey;
-        dom.regionInput.value = value.regionName;
-        persistUiState();
-        renderSelectionPanel();
-        renderCountryView();
-        renderSavedRegions();
-        state.activeMatches = renderSearchMatches(value.regionName);
-      },
-      onDeleteEntry: (visitKey, value) => {
-        delete state.visited[visitKey];
-        if (state.selectedRegionKey === visitKey) {
-          state.selectedRegionKey = null;
-        }
-        saveVisited(state.visited);
-        persistUiState();
-        renderAll();
-        setStatus("status.deletedVisit", "success", {
-          region: getSavedRegionLabel(visitKey, value),
-        });
-      },
     });
   }
 
@@ -598,53 +529,6 @@ export function bootstrapApp() {
       dom,
       values: Object.values(state.visited),
     });
-  }
-
-  function renderSearchMatches(query) {
-    const matches = renderMatches({
-      dom,
-      query,
-      selectedCountryIso: state.selectedCountryIso,
-      data: state.adminDataByIso.get(state.selectedCountryIso),
-      findMatches,
-      t: translate,
-      getFeatureLabel: getRegionLabel,
-      onSelectRegion: (feature) => {
-        selectFeature(feature);
-      },
-    });
-
-    matches.slice(0, 8).forEach((feature) => {
-      queueRegionName(feature);
-    });
-
-    return matches;
-  }
-
-  function renderResolvedMatches(features) {
-    features.slice(0, 8).forEach((feature) => {
-      queueRegionName(feature);
-    });
-
-    renderMatchChips({
-      dom,
-      features: features.slice(0, 8),
-      getFeatureLabel: getRegionLabel,
-      onSelectRegion: (feature) => {
-        selectFeature(feature);
-      },
-    });
-    return features;
-  }
-
-  function renderPlaceRetryHint() {
-    renderMatchChips({
-      dom,
-      features: [],
-      emptyText: translate("search.placeNoMatches"),
-      onSelectRegion: () => {},
-    });
-    return [];
   }
 
   function renderCurrentStatus() {
@@ -665,10 +549,10 @@ export function bootstrapApp() {
     dom.regionInput.value = feature.properties.regionName;
     persistUiState();
     queueRegionName(feature);
-    state.activeMatches = renderSearchMatches(feature.properties.regionName);
+    clearSearchResults();
     renderSelectionPanel();
     renderCountryView();
-    renderSavedRegions();
+    renderArchivePanel();
   }
 
   function saveVisit(feature, type, { query = "", statusKey = "status.savedVisit" } = {}) {
@@ -688,7 +572,7 @@ export function bootstrapApp() {
     saveVisited(state.visited);
     persistUiState();
     renderAll();
-    state.activeMatches = renderSearchMatches(feature.properties.regionName);
+    clearSearchResults();
     setStatus(statusKey, "success", {
       query,
       region: getRegionLabel(feature),
@@ -703,12 +587,11 @@ export function bootstrapApp() {
 
     state.selectedRegionKey = null;
     dom.regionInput.value = "";
-    dom.searchResults.innerHTML = "";
     persistUiState();
-    state.activeMatches = [];
+    clearSearchResults();
     renderSelectionPanel();
     renderCountryView();
-    renderSavedRegions();
+    renderArchivePanel();
   }
 
   function clearSelectedCountry() {
@@ -719,13 +602,12 @@ export function bootstrapApp() {
     state.selectedCountryIso = null;
     state.selectedRegionKey = null;
     dom.regionInput.value = "";
-    dom.searchResults.innerHTML = "";
     persistUiState();
-    state.activeMatches = [];
+    clearSearchResults();
     renderCountrySelectView();
     renderContinentView();
     renderSelectionPanel();
-    renderSavedRegions();
+    renderArchivePanel();
     renderCountryView();
   }
 
@@ -816,35 +698,190 @@ export function bootstrapApp() {
     return getVisitTypeLabel(state.language, type);
   }
 
-  async function lookupPlaceMatches(query, features) {
+  function renderActiveSearchResults(emptyText = "") {
+    renderSearchCandidates({
+      dom,
+      candidates: state.activeMatches,
+      emptyText,
+      getCandidateTitle,
+      getCandidateMeta,
+      getCandidateBadge,
+      onSelectCandidate: (candidate) => {
+        selectSearchCandidate(candidate);
+      },
+    });
+  }
+
+  function clearSearchResults() {
+    if (state.searchTimer) {
+      window.clearTimeout(state.searchTimer);
+      state.searchTimer = 0;
+    }
+
+    state.searchToken += 1;
+    state.activeMatches = [];
+    renderActiveSearchResults();
+  }
+
+  function scheduleSearch(query, { immediate = false, preserveStatus = false } = {}) {
+    if (state.searchTimer) {
+      window.clearTimeout(state.searchTimer);
+      state.searchTimer = 0;
+    }
+
+    if (!query.trim()) {
+      clearSearchResults();
+      return;
+    }
+
+    const execute = () => {
+      state.searchTimer = 0;
+      runSearch(query, { explicit: false, preserveStatus }).catch((error) => {
+        console.error(error);
+        setStatus("status.placeLookupError", "error");
+      });
+    };
+
+    if (immediate) {
+      execute();
+      return;
+    }
+
+    state.searchTimer = window.setTimeout(execute, 320);
+  }
+
+  async function runSearch(query, { explicit = false, preserveStatus = false } = {}) {
     const normalizedQuery = normalizeText(query);
 
-    if (!normalizedQuery || !state.selectedCountryIso) {
+    if (!normalizedQuery) {
+      clearSearchResults();
       return [];
     }
 
-    const cacheKey = `${state.language}::${state.selectedCountryIso}::${normalizedQuery}`;
+    const token = ++state.searchToken;
+
+    if (explicit || !preserveStatus) {
+      setStatus("search.loading", "loading");
+    }
+
+    const matches = await lookupSearchCandidates(query);
+
+    if (token !== state.searchToken) {
+      return [];
+    }
+
+    state.activeMatches = matches.slice(0, 8);
+    renderActiveSearchResults(
+      matches.length ? "" : translate("search.placeNoMatches"),
+    );
+    queueVisibleRegionNames();
+
+    if (matches.length) {
+      setStatus(
+        explicit ? "status.searchResultsReady" : "search.pickResult",
+        "success",
+        { count: matches.length },
+      );
+    } else if (explicit) {
+      setStatus("status.regionNotFound", "error");
+    }
+
+    return matches;
+  }
+
+  async function lookupSearchCandidates(query) {
+    const normalizedQuery = normalizeText(query);
+    const cacheKey = `${state.language}::${state.selectedCountryIso ?? "ALL"}::${normalizedQuery}`;
+
+    if (state.globalSearchCache.has(cacheKey)) {
+      return state.globalSearchCache.get(cacheKey);
+    }
+
+    const lookupPromise = (async () => {
+      const localCandidates = await lookupLocalRegionCandidates(query);
+      const airportCandidates = looksLikeAirportCode(query)
+        ? await lookupGlobalAirportCandidates(query)
+        : [];
+      const placeCandidates = await lookupGlobalPlaceCandidates(query);
+
+      return dedupeCandidates(
+        [
+          ...localCandidates,
+          ...airportCandidates,
+          ...placeCandidates,
+        ],
+        query,
+      );
+    })().catch((error) => {
+      state.globalSearchCache.delete(cacheKey);
+      throw error;
+    });
+
+    state.globalSearchCache.set(cacheKey, lookupPromise);
+    return lookupPromise;
+  }
+
+  async function lookupLocalRegionCandidates(query) {
+    if (!state.selectedCountryIso) {
+      return [];
+    }
+
+    const data = await ensureAdminData(state, state.selectedCountryIso);
+    return findMatches(data.features, query)
+      .slice(0, 6)
+      .map((feature) => createRegionCandidate(feature));
+  }
+
+  async function lookupGlobalPlaceCandidates(query) {
+    const normalizedQuery = normalizeText(query);
+    const cacheKey = `${state.language}::global-place::${normalizedQuery}`;
 
     if (state.placeSearchCache.has(cacheKey)) {
       return state.placeSearchCache.get(cacheKey);
     }
 
     const lookupPromise = (async () => {
-      const elapsed = Date.now() - state.lastPlaceSearchAt;
+      const results = await throttlePlaceLookup(() =>
+        searchPlaceResults({
+          query,
+          language: state.language,
+        }),
+      );
+      const countryIsos = [...new Set(
+        results
+          .map((candidate) => toAlpha3CountryCode(candidate.address?.country_code))
+          .filter((iso) => state.adm0ByIso.has(iso)),
+      )];
 
-      if (elapsed < 1100) {
-        await wait(1100 - elapsed);
-      }
+      await Promise.all(
+        countryIsos.map((iso) =>
+          ensureAdminData(state, iso).catch(() => null),
+        ),
+      );
 
-      state.lastPlaceSearchAt = Date.now();
+      return dedupeCandidates(
+        results.flatMap((candidate) => {
+          const iso = toAlpha3CountryCode(candidate.address?.country_code);
+          const data = state.adminDataByIso.get(iso);
 
-      return findPlaceMatches({
-        query,
-        countryName:
-          state.adm0ByIso.get(state.selectedCountryIso)?.boundaryName ?? "",
-        features,
-        language: state.language,
-      });
+          if (!iso || !data) {
+            return [];
+          }
+
+          const feature =
+            findFeatureContainingPoint(data.features, [
+              Number(candidate.lon),
+              Number(candidate.lat),
+            ]) ??
+            findAdministrativeNameMatches(data.features, candidate.address ?? {})[0];
+
+          if (!feature) {
+            return [];
+          }
+
+          return [createPlaceCandidate(candidate, feature, iso)];
+        }),
+      );
     })().catch((error) => {
       state.placeSearchCache.delete(cacheKey);
       throw error;
@@ -854,12 +891,218 @@ export function bootstrapApp() {
     return lookupPromise;
   }
 
-  async function lookupAirportMatches(query, features) {
-    return findAirportMatches({
-      query,
-      countryIsoAlpha3: state.selectedCountryIso,
-      features,
+  async function lookupGlobalAirportCandidates(query) {
+    const airports = await findAirportCandidates(query);
+    const countryIsos = [...new Set(
+      airports
+        .map((airport) => toAlpha3CountryCode(airport.countryAlpha2))
+        .filter((iso) => state.adm0ByIso.has(iso)),
+    )];
+
+    await Promise.all(
+      countryIsos.map((iso) =>
+        ensureAdminData(state, iso).catch(() => null),
+      ),
+    );
+
+    return dedupeCandidates(
+      airports.flatMap((airport) => {
+        const iso = toAlpha3CountryCode(airport.countryAlpha2);
+        const data = state.adminDataByIso.get(iso);
+
+        if (!iso || !data) {
+          return [];
+        }
+
+        const feature = findFeatureContainingPoint(data.features, [
+          airport.longitude,
+          airport.latitude,
+        ]);
+
+        if (!feature) {
+          return [];
+        }
+
+        return [createAirportCandidate(airport, feature, iso)];
+      }),
+    );
+  }
+
+  async function selectSearchCandidate(candidate) {
+    const meta = state.adm0ByIso.get(candidate.iso);
+
+    if (!meta) {
+      return;
+    }
+
+    state.selectedContinent = meta.uiContinent ?? state.selectedContinent;
+    state.selectedCountryIso = candidate.iso;
+    state.selectedRegionKey = candidate.feature.properties.visitKey;
+    dom.regionInput.value = candidate.feature.properties.regionName;
+    persistUiState();
+    clearSearchResults();
+    renderContinentTabsView();
+    renderCountrySelectView();
+    renderContinentView();
+    renderArchivePanel();
+    await loadSelectedCountry();
+    renderSelectionPanel();
+    renderCountryView();
+    setStatus("status.resultSelected", "success", {
+      region: getRegionLabel(candidate.feature),
+      country: getCountryLabelByIso(candidate.iso),
     });
+  }
+
+  function createRegionCandidate(feature) {
+    return {
+      id: `region:${feature.properties.visitKey}`,
+      source: "region",
+      iso: feature.properties.iso,
+      feature,
+      matchedName: feature.properties.regionName,
+    };
+  }
+
+  function createPlaceCandidate(candidate, feature, iso) {
+    return {
+      id: `place:${iso}:${feature.properties.visitKey}:${normalizeText(getPlaceCandidateName(candidate))}`,
+      source: "place",
+      iso,
+      feature,
+      matchedName: getPlaceCandidateName(candidate),
+    };
+  }
+
+  function createAirportCandidate(airport, feature, iso) {
+    return {
+      id: `airport:${iso}:${feature.properties.visitKey}:${airport.matchedCode}:${airport.ident}`,
+      source: "airport",
+      iso,
+      feature,
+      matchedName: airport.name || airport.municipality || airport.matchedCode,
+      municipality: airport.municipality || "",
+      code: airport.matchedCode,
+    };
+  }
+
+  function getCandidateTitle(candidate) {
+    if (candidate.source === "airport") {
+      return candidate.matchedName && normalizeText(candidate.matchedName) !== normalizeText(candidate.code)
+        ? `${candidate.code} · ${candidate.matchedName}`
+        : candidate.code;
+    }
+
+    if (
+      candidate.source === "place" &&
+      normalizeText(candidate.matchedName) !== normalizeText(candidate.feature.properties.regionName)
+    ) {
+      return candidate.matchedName;
+    }
+
+    return getRegionLabel(candidate.feature);
+  }
+
+  function getCandidateMeta(candidate) {
+    const parts = [];
+
+    if (candidate.source === "airport" && candidate.municipality) {
+      parts.push(candidate.municipality);
+    }
+
+    const lastPart = parts[parts.length - 1] ?? "";
+
+    if (
+      candidate.source !== "region" ||
+      !parts.length ||
+      normalizeText(lastPart) !== normalizeText(candidate.feature.properties.regionName)
+    ) {
+      parts.push(getRegionLabel(candidate.feature));
+    }
+
+    parts.push(getCountryLabelByIso(candidate.iso));
+
+    return [...new Set(parts.filter(Boolean))].join(" · ");
+  }
+
+  function getCandidateBadge(candidate) {
+    return translate(`search.badges.${candidate.source}`);
+  }
+
+  function dedupeCandidates(candidates, query = "") {
+    const deduped = [...new Map(
+      candidates.map((candidate) => [
+        candidate.feature?.properties?.visitKey ?? candidate.id,
+        candidate,
+      ]),
+    ).values()];
+
+    return deduped.sort((left, right) => sortCandidates(left, right, query));
+  }
+
+  function sortCandidates(left, right, query) {
+    const leftSelectedCountry = left.iso === state.selectedCountryIso ? 1 : 0;
+    const rightSelectedCountry = right.iso === state.selectedCountryIso ? 1 : 0;
+
+    if (leftSelectedCountry !== rightSelectedCountry) {
+      return rightSelectedCountry - leftSelectedCountry;
+    }
+
+    const sourceWeight = {
+      airport: 3,
+      place: 2,
+      region: 1,
+    };
+
+    const leftWeight = sourceWeight[left.source] ?? 0;
+    const rightWeight = sourceWeight[right.source] ?? 0;
+
+    if (leftWeight !== rightWeight) {
+      return rightWeight - leftWeight;
+    }
+
+    const normalizedQuery = normalizeText(query);
+    const leftScore = normalizeText(getCandidateTitle(left)).startsWith(normalizedQuery) ? 1 : 0;
+    const rightScore = normalizeText(getCandidateTitle(right)).startsWith(normalizedQuery) ? 1 : 0;
+
+    if (leftScore !== rightScore) {
+      return rightScore - leftScore;
+    }
+
+    return getCandidateMeta(left).localeCompare(getCandidateMeta(right));
+  }
+
+  function queryMatchesSelectedFeature(query, feature) {
+    const normalizedQuery = normalizeText(query);
+    return (
+      normalizedQuery === normalizeText(feature.properties.regionName) ||
+      normalizedQuery === normalizeText(getRegionLabel(feature))
+    );
+  }
+
+  function getPlaceCandidateName(candidate) {
+    return String(
+      candidate.name ||
+        candidate.address?.city ||
+        candidate.address?.town ||
+        candidate.address?.village ||
+        candidate.address?.municipality ||
+        candidate.address?.county ||
+        String(candidate.display_name ?? "").split(",")[0],
+    ).trim();
+  }
+
+  function throttlePlaceLookup(task) {
+    return (async () => {
+      const elapsed = Date.now() - state.lastPlaceSearchAt;
+
+      if (elapsed < 1100) {
+        await wait(1100 - elapsed);
+      }
+
+      state.lastPlaceSearchAt = Date.now();
+      return task();
+    })();
   }
 
   function ensureCountryNamesReady() {
@@ -878,12 +1121,7 @@ export function bootstrapApp() {
   }
 
   function queueVisibleRegionNames() {
-    if (state.language !== "zh" || !state.selectedCountryIso) {
-      return;
-    }
-
-    const currentData = state.adminDataByIso.get(state.selectedCountryIso);
-    if (!currentData?.features?.length) {
+    if (state.language !== "zh") {
       return;
     }
 
@@ -894,20 +1132,28 @@ export function bootstrapApp() {
       visibleFeatures.push(selectedFeature);
     }
 
-    state.activeMatches.slice(0, 8).forEach((feature) => {
-      visibleFeatures.push(feature);
+    state.activeMatches.slice(0, 8).forEach((candidate) => {
+      if (candidate.feature) {
+        visibleFeatures.push(candidate.feature);
+      }
     });
 
-    Object.entries(state.visited)
-      .filter(([, value]) => value.iso === state.selectedCountryIso)
-      .forEach(([visitKey]) => {
-        const feature = currentData.features.find(
-          (candidate) => candidate.properties.visitKey === visitKey,
-        );
-        if (feature) {
-          visibleFeatures.push(feature);
-        }
-      });
+    if (state.selectedCountryIso) {
+      const currentData = state.adminDataByIso.get(state.selectedCountryIso);
+
+      if (currentData?.features?.length) {
+        Object.entries(state.visited)
+          .filter(([, value]) => value.iso === state.selectedCountryIso)
+          .forEach(([visitKey]) => {
+            const feature = currentData.features.find(
+              (candidate) => candidate.properties.visitKey === visitKey,
+            );
+            if (feature) {
+              visibleFeatures.push(feature);
+            }
+          });
+      }
+    }
 
     [...new Map(visibleFeatures.map((feature) => [feature.properties.visitKey, feature])).values()]
       .forEach((feature) => {
@@ -936,7 +1182,7 @@ export function bootstrapApp() {
         state.placeNames.regions[visitKey] = translatedName;
         savePlaceNames(state.placeNames);
         renderAll();
-        state.activeMatches = renderSearchMatches(dom.regionInput.value);
+        renderActiveSearchResults();
       })
       .catch((error) => {
         console.warn(`Failed to translate region name for ${visitKey}`, error);
@@ -1026,6 +1272,33 @@ export function bootstrapApp() {
       ? continentId
       : "asia";
   }
+}
+
+function loadUrlState() {
+  const params = new URLSearchParams(window.location.search);
+  const state = {};
+  const continent = params.get("continent");
+  const country = params.get("country");
+  const region = params.get("region");
+  const query = params.get("query");
+
+  if (continent) {
+    state.selectedContinent = continent;
+  }
+
+  if (country) {
+    state.selectedCountryIso = country;
+  }
+
+  if (region) {
+    state.selectedRegionKey = region;
+  }
+
+  if (query) {
+    state.regionQuery = query;
+  }
+
+  return state;
 }
 
 function wait(ms) {

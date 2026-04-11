@@ -21,6 +21,22 @@ const TRANSLATIONS = {
       "Choose a continent first, then drill into each country’s administrative regions.",
     markPlacesTitle: "Search and color-code",
     savedTitle: "Marked regions in this country",
+    archive: {
+      title: "Visited archive",
+      openPage: "Open visited page",
+      totalMarks: "Saved regions",
+      totalCountries: "Visited countries",
+      currentCountry: "In current country",
+      pageTitle: "Visited archive",
+      pageText: "Browse all saved regions, then jump back into the map at the exact place.",
+      backToMap: "Back to map",
+      empty: "No saved regions yet.",
+      updatedAt: "Updated {date}",
+      openMap: "Open on map",
+      searchPlaceholder: "Filter by country or region",
+      searchLabel: "Filter",
+      count: "{count} saved regions",
+    },
     fields: {
       country: "Country",
       countryPlaceholder: "Select a country",
@@ -44,11 +60,19 @@ const TRANSLATIONS = {
     },
     search: {
       flexHint:
-        "You can enter a state, city, airport code, or landmark, then press Enter.",
+        "Search globally by city, state, airport code, or landmark, then pick a result below.",
       noMatches:
-        "No direct ADM1 match. Press Enter to search a city, airport code, or place.",
+        "No matching results yet. Keep typing or press Enter to search all countries.",
       placeNoMatches:
         "Still nothing mapped. Try another spelling, a nearby city, or the exact state / province name.",
+      pickResult:
+        "Pick one result below to focus the map. Then choose a visit type and save it.",
+      loading: "Searching across countries…",
+      badges: {
+        region: "Region",
+        place: "Place",
+        airport: "Airport",
+      },
     },
     saved: {
       emptySelectCountry: "Select a country first.",
@@ -120,8 +144,8 @@ const TRANSLATIONS = {
       selectCountryFirst: "Select a country first.",
       enterRegion: "Enter a region name.",
       searchingAirportCode:
-        "Looking up airport code {code} in {country}…",
-      searchingPlaces: "No direct ADM1 match. Searching cities and places in {country}…",
+        "Looking up airport code {code} across countries…",
+      searchingPlaces: "Searching cities and places across countries…",
       regionNotFound:
         "No matching region was found. Pick one from the suggestions first.",
       multipleMatches:
@@ -136,6 +160,10 @@ const TRANSLATIONS = {
         "This place could belong to multiple first-level regions. Pick the exact one first.",
       placeLookupError:
         "City and place search is temporarily unavailable. Try an exact administrative region name.",
+      searchResultsReady:
+        "Found {count} matching results. Pick one to focus the map, then save it.",
+      resultSelected:
+        "Focused {region} in {country}. Choose a visit type and save it.",
       savedVisit: "{region} is now marked as {type}.",
       savedAirportVisit:
         "Matched airport code {query} to {region}, and marked it as {type}.",
@@ -175,6 +203,22 @@ const TRANSLATIONS = {
     continentSectionTitle: "先切换大洲，再进入国家一级行政区。",
     markPlacesTitle: "搜索并上色",
     savedTitle: "当前国家已标记地区",
+    archive: {
+      title: "足迹归档",
+      openPage: "打开足迹页面",
+      totalMarks: "已存地区",
+      totalCountries: "已访问国家",
+      currentCountry: "当前国家内",
+      pageTitle: "足迹归档",
+      pageText: "查看所有已保存地区，并一键跳回地图中的具体位置。",
+      backToMap: "返回地图",
+      empty: "还没有保存任何地区。",
+      updatedAt: "更新于 {date}",
+      openMap: "打开地图定位",
+      searchPlaceholder: "按国家或地区筛选",
+      searchLabel: "筛选",
+      count: "共 {count} 个已保存地区",
+    },
     fields: {
       country: "国家",
       countryPlaceholder: "请选择国家",
@@ -197,10 +241,17 @@ const TRANSLATIONS = {
       meta: "{country} · 当前状态：{status}",
     },
     search: {
-      flexHint: "可以直接输入州、省、城市、机场代码或地名，再按回车。",
-      noMatches: "没有直接匹配到一级行政区，回车可继续搜索城市、机场代码或地名。",
+      flexHint: "可以直接全局搜索州、省、城市、机场代码或地名，再从下面候选里选择。",
+      noMatches: "还没有匹配结果。继续输入，或按回车搜索所有国家。",
       placeNoMatches:
         "还是没有归到行政区。可以换个拼写、附近城市，或直接输入州 / 省名称。",
+      pickResult: "请先从下面候选里点一个结果，地图会自动定位到对应国家和一级行政区。",
+      loading: "正在跨国家搜索…",
+      badges: {
+        region: "行政区",
+        place: "地点",
+        airport: "机场",
+      },
     },
     saved: {
       emptySelectCountry: "先选择一个国家。",
@@ -262,8 +313,8 @@ const TRANSLATIONS = {
       countryLoadError: "一级行政区边界加载失败。",
       selectCountryFirst: "请先选择国家。",
       enterRegion: "请输入地区名称。",
-      searchingAirportCode: "正在查找机场代码 {code} 在 {country} 对应的一级行政区…",
-      searchingPlaces: "没有直接匹配到一级行政区，正在继续搜索 {country} 的城市或地名…",
+      searchingAirportCode: "正在跨国家查找机场代码 {code} 对应的一级行政区…",
+      searchingPlaces: "正在跨国家继续搜索城市或地名…",
       regionNotFound: "没有找到这个地区，请从候选结果里点选。",
       multipleMatches: "匹配到多个地区，请先点选具体地区。",
       airportCodeNotFound: "没有把机场代码 {code} 准确归到 {country} 的一级行政区。",
@@ -271,6 +322,8 @@ const TRANSLATIONS = {
       placeNotFound: "没有把这个城市或地名准确归到 {country} 的一级行政区。",
       placeMultipleMatches: "这个地名可能对应多个一级行政区，请先点选具体地区。",
       placeLookupError: "城市 / 地名搜索暂时不可用，请改用更精确的一级行政区名称。",
+      searchResultsReady: "找到了 {count} 个候选结果。请先点选一个，再保存标记。",
+      resultSelected: "已定位到 {country} 的 {region}。接下来选择足迹类型并保存即可。",
       savedVisit: "{region} 已标记为 {type}。",
       savedAirportVisit: "已将机场代码 {query} 归到 {region}，并标记为 {type}。",
       savedPlaceVisit: "已将 {query} 归到 {region}，并标记为 {type}。",

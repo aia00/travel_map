@@ -10,44 +10,18 @@ export function renderMetrics({ dom, values }) {
   dom.metricTransit.textContent = `${values.filter((item) => item.type === "transit").length}`;
 }
 
-export function renderMatches({
+export function renderSearchCandidates({
   dom,
-  query,
-  selectedCountryIso,
-  data,
-  findMatches,
-  t,
-  getFeatureLabel,
-  onSelectRegion,
-}) {
-  if (!query.trim() || !selectedCountryIso || !data) {
-    dom.searchResults.innerHTML = "";
-    return [];
-  }
-
-  const matches = findMatches(data.features, query);
-
-  renderMatchChips({
-    dom,
-    features: matches.slice(0, 8),
-    emptyText: t("search.noMatches"),
-    getFeatureLabel,
-    onSelectRegion,
-  });
-
-  return matches;
-}
-
-export function renderMatchChips({
-  dom,
-  features,
+  candidates,
   emptyText = "",
-  getFeatureLabel = (feature) => feature.properties.regionName,
-  onSelectRegion,
+  getCandidateTitle,
+  getCandidateMeta = () => "",
+  getCandidateBadge = () => "",
+  onSelectCandidate,
 }) {
   dom.searchResults.innerHTML = "";
 
-  if (!features.length) {
+  if (!candidates.length) {
     if (!emptyText) {
       return;
     }
@@ -59,16 +33,75 @@ export function renderMatchChips({
     return;
   }
 
-  features.forEach((feature) => {
+  candidates.forEach((candidate) => {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "result-chip";
-    button.textContent = getFeatureLabel(feature);
+    const badge = getCandidateBadge(candidate);
+    const title = getCandidateTitle(candidate);
+    const meta = getCandidateMeta(candidate);
+    const main = document.createElement("span");
+    main.className = "result-chip-main";
+
+    const titleNode = document.createElement("span");
+    titleNode.className = "result-chip-title";
+    titleNode.textContent = title;
+    main.appendChild(titleNode);
+
+    if (meta) {
+      const metaNode = document.createElement("span");
+      metaNode.className = "result-chip-meta";
+      metaNode.textContent = meta;
+      main.appendChild(metaNode);
+    }
+
+    button.appendChild(main);
+
+    if (badge) {
+      const badgeNode = document.createElement("span");
+      badgeNode.className = "result-chip-badge";
+      badgeNode.textContent = badge;
+      button.appendChild(badgeNode);
+    }
+
     button.addEventListener("click", () => {
-      onSelectRegion(feature);
+      onSelectCandidate(candidate);
     });
     dom.searchResults.appendChild(button);
   });
+}
+
+export function renderArchiveSummary({
+  dom,
+  totals,
+  currentCountryCount,
+  t,
+}) {
+  dom.savedList.innerHTML = "";
+
+  const summary = document.createElement("div");
+  summary.className = "archive-summary";
+
+  [
+    [totals.total, t("archive.totalMarks")],
+    [totals.countries, t("archive.totalCountries")],
+    [currentCountryCount, t("archive.currentCountry")],
+  ].forEach(([value, label]) => {
+    const stat = document.createElement("div");
+    stat.className = "archive-stat";
+
+    const strong = document.createElement("strong");
+    strong.textContent = `${value}`;
+    stat.appendChild(strong);
+
+    const span = document.createElement("span");
+    span.textContent = label;
+    stat.appendChild(span);
+
+    summary.appendChild(stat);
+  });
+
+  dom.savedList.appendChild(summary);
 }
 
 export function renderSelectionCard({
@@ -76,6 +109,7 @@ export function renderSelectionCard({
   selectedFeature,
   selectedTitle,
   selectedVisit,
+  activeVisitType,
   countryName,
   t,
   getVisitTypeLabel,
@@ -101,7 +135,7 @@ export function renderSelectionCard({
   ["resident", "travel", "transit"].forEach((type) => {
     const button = document.createElement("button");
     button.type = "button";
-    button.className = `quick-action ${selectedVisit?.type === type ? "is-active" : ""}`;
+    button.className = `quick-action ${activeVisitType === type ? "is-active" : ""}`;
     button.dataset.type = type;
     button.textContent = getVisitTypeLabel(type);
     button.addEventListener("click", () => {

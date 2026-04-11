@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Visited archive</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Noto+Serif+SC:wght@600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="hero panel archive-page-header">
+        <div class="hero-top">
+          <p class="eyebrow" data-i18n="eyebrow">Visited Atlas</p>
+          <div
+            class="language-switch"
+            role="group"
+            aria-label="Language switch"
+            data-i18n-aria-label="languageSwitchAria"
+          >
+            <button type="button" class="lang-button" data-lang="zh">中文</button>
+            <button type="button" class="lang-button" data-lang="en">EN</button>
+          </div>
+        </div>
+        <div class="archive-page-intro">
+          <div>
+            <h1 id="archivePageTitle" data-i18n="archive.pageTitle">Visited archive</h1>
+            <p class="hero-text" data-i18n="archive.pageText">
+              Browse all saved regions, then jump back into the map at the exact place.
+            </p>
+          </div>
+          <a class="ghost-button archive-back-link" href="./index.html" data-i18n="archive.backToMap">
+            Back to map
+          </a>
+        </div>
+      </header>
+
+      <section class="panel archive-page-panel">
+        <div class="archive-filter-row">
+          <div>
+            <p class="section-kicker" data-i18n="sections.saved">Saved</p>
+            <h2 id="archiveCount">0 saved regions</h2>
+          </div>
+          <label class="field archive-filter-field">
+            <span data-i18n="archive.searchLabel">Filter</span>
+            <input
+              id="archiveFilter"
+              type="search"
+              placeholder="Filter by country or region"
+              data-i18n-placeholder="archive.searchPlaceholder"
+              autocomplete="off"
+            />
+          </label>
+        </div>
+
+        <div id="archivePageList" class="archive-page-list"></div>
+      </section>
+    </div>
+
+    <script type="module" src="./js/visitedPage.js"></script>
+  </body>
+</html>

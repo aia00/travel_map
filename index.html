@@ -85,7 +85,7 @@
           <form id="placeForm" class="control-form">
             <label class="field">
               <span data-i18n="fields.country">Country</span>
-              <select id="countrySelect" name="country" required></select>
+              <select id="countrySelect" name="country"></select>
             </label>
 
             <label class="field">
@@ -180,10 +180,13 @@
             <div class="section-heading compact">
               <div>
                 <p class="section-kicker" data-i18n="sections.saved">Saved</p>
-                <h2 data-i18n="savedTitle">Marked regions in this country</h2>
+                <h2 data-i18n="archive.title">Visited archive</h2>
               </div>
             </div>
             <div id="savedList" class="saved-list"></div>
+            <a class="primary-button archive-link" href="./visited.html" data-i18n="archive.openPage">
+              Open visited page
+            </a>
           </section>
         </aside>
 
