@@ -180,6 +180,9 @@ const TRANSLATIONS = {
     aria: {
       continentMap: "Continent map",
       countryMap: "Administrative map",
+      countryMapZoom: "Administrative map zoom controls",
+      zoomIn: "Zoom in",
+      zoomOut: "Zoom out",
     },
   },
   zh: {
@@ -337,6 +340,9 @@ const TRANSLATIONS = {
     aria: {
       continentMap: "大洲地图",
       countryMap: "一级行政区地图",
+      countryMapZoom: "一级行政区地图缩放按钮",
+      zoomIn: "放大地图",
+      zoomOut: "缩小地图",
     },
   },
 };

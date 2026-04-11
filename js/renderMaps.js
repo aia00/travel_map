@@ -212,21 +212,32 @@ export function renderCountryMap({
   getVisitLabel,
 }) {
   const svg = d3.select(dom.countryMap);
+  const previousCountryIso = svg.attr("data-country-iso");
+  const persistedTransform =
+    previousCountryIso === selectedCountryIso
+      ? d3.zoomTransform(svg.node())
+      : d3.zoomIdentity;
   svg.selectAll("*").remove();
   hideTooltip(dom);
 
   if (!selectedCountryIso) {
+    setCountryZoomControls(dom, { disabled: true });
+    svg.attr("data-country-iso", "");
     renderCountryMapError(dom, t("map.emptyCountryPrompt"));
     return;
   }
 
   if (!countryData) {
+    setCountryZoomControls(dom, { disabled: true });
+    svg.attr("data-country-iso", "");
     renderCountryMapError(dom, t("map.emptyCountryLoading"));
     return;
   }
 
   const features = countryData.features;
   if (!features.length) {
+    setCountryZoomControls(dom, { disabled: true });
+    svg.attr("data-country-iso", "");
     renderCountryMapError(dom, t("map.emptyCountryNoAdm1"));
     return;
   }
@@ -234,7 +245,9 @@ export function renderCountryMap({
   const projection = createCountryProjection(selectedCountryIso, features);
   const path = d3.geoPath(projection);
 
-  svg.attr("preserveAspectRatio", "xMidYMid meet");
+  svg
+    .attr("preserveAspectRatio", "xMidYMid meet")
+    .attr("data-country-iso", selectedCountryIso);
 
   svg
     .append("rect")
@@ -250,7 +263,9 @@ export function renderCountryMap({
       hideTooltip(dom);
     });
 
-  svg
+  const viewport = svg.append("g").attr("class", "country-map-viewport");
+
+  viewport
     .append("g")
     .attr("class", "country-region-fills")
     .selectAll("path")
@@ -264,7 +279,7 @@ export function renderCountryMap({
     .attr("stroke", "rgba(20, 37, 52, 0.48)")
     .attr("stroke-width", 1.05);
 
-  svg
+  viewport
     .append("g")
     .attr("class", "country-region-hits")
     .selectAll("path")
@@ -289,12 +304,43 @@ export function renderCountryMap({
     .on("mouseleave", () => {
       hideTooltip(dom);
     });
+
+  const zoom = d3
+    .zoom()
+    .scaleExtent([1, 8])
+    .translateExtent([
+      [-COUNTRY_VIEWBOX.width, -COUNTRY_VIEWBOX.height],
+      [COUNTRY_VIEWBOX.width * 2, COUNTRY_VIEWBOX.height * 2],
+    ])
+    .extent([
+      [0, 0],
+      [COUNTRY_VIEWBOX.width, COUNTRY_VIEWBOX.height],
+    ])
+    .on("zoom", (event) => {
+      viewport.attr("transform", event.transform);
+      hideTooltip(dom);
+      setCountryZoomControls(dom, {
+        zoomIn: () => {
+          svg.transition().duration(180).call(zoom.scaleBy, 1.35);
+        },
+        zoomOut: () => {
+          svg.transition().duration(180).call(zoom.scaleBy, 1 / 1.35);
+        },
+        disableZoomIn: event.transform.k >= 7.999,
+        disableZoomOut: event.transform.k <= 1.001,
+      });
+    });
+
+  svg.call(zoom).on("wheel.zoom", null).on("dblclick.zoom", null);
+  svg.call(zoom.transform, persistedTransform);
 }
 
 export function renderCountryMapError(dom, message) {
   const svg = d3.select(dom.countryMap);
   svg.selectAll("*").remove();
+  svg.attr("data-country-iso", "");
   hideTooltip(dom);
+  setCountryZoomControls(dom, { disabled: true });
   dom.countryMeta.textContent = message;
   svg
     .append("foreignObject")
@@ -329,4 +375,29 @@ function createCountryProjection(countryIso, features) {
   }
 
   return d3.geoIdentity().reflectY(true).fitExtent(fitExtent, featureCollection);
+}
+
+function setCountryZoomControls(
+  dom,
+  {
+    zoomIn = null,
+    zoomOut = null,
+    disableZoomIn = false,
+    disableZoomOut = true,
+    disabled = false,
+  } = {},
+) {
+  const buttons = [
+    [dom.countryZoomIn, zoomIn, disableZoomIn],
+    [dom.countryZoomOut, zoomOut, disableZoomOut],
+  ];
+
+  buttons.forEach(([button, handler, shouldDisable]) => {
+    if (!button) {
+      return;
+    }
+
+    button.onclick = handler;
+    button.disabled = disabled || shouldDisable || typeof handler !== "function";
+  });
 }

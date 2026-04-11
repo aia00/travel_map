@@ -19,6 +19,8 @@ export function queryDom() {
     tooltip: document.querySelector("#tooltip"),
     continentMap: document.querySelector("#continentMap"),
     countryMap: document.querySelector("#countryMap"),
+    countryZoomIn: document.querySelector("#countryZoomIn"),
+    countryZoomOut: document.querySelector("#countryZoomOut"),
     metricTotal: document.querySelector('[data-metric="total"]'),
     metricResident: document.querySelector('[data-metric="resident"]'),
     metricTravel: document.querySelector('[data-metric="travel"]'),
